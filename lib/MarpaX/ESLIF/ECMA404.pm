@@ -29,7 +29,7 @@ sub new {
         bless \MarpaX::ESLIF::Grammar->new(($_ESLIF //= MarpaX::ESLIF->new()), $_DATA), $_[0]
 }
 
-sub json_decode {
+sub decode_json {
   my $recognizerInterface = MarpaX::ESLIF::ECMA404::RecognizerInterface->new($_[1]);
 
   #
@@ -111,17 +111,23 @@ char    ::= [^"\\[:cntrl:]]                          action => ::shift          
 # -----------
 # Ok to be a lexeme, the final result is always compliant with what perl understands
 #
-number    ~ int
-          | int frac
-          | int exp
-          | int frac exp
-int       ~ digit
-          | digit19 digits
-          | '-' digit
-          | '-' digit19 digits
-digit     ~ [[:digit:]]
-digit19   ~ [1-9]
-frac      ~ '.' digits
-exp       ~ e digits
-digits    ~ digit*
-e         ~ /e[+-]?/i
+number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?/        action => ::concat # decimal string representation is perfectly ok in perl -;
+
+#number    ~ int
+#          | int frac
+#          | int exp
+#          | int frac exp
+#int       ~ digit
+#          | digit19 digits
+#          | '-' digit
+#          | '-' digit19 digits
+#digit     ~ [[:digit:]]
+#digit19   ~ [1-9]
+#frac      ~ '.' digits
+#exp       ~ e digits
+#digits    ~ digit*
+#e         ~ /e[+-]?/i
+
+#
+# \-?(?:[0-9]|(?:[1-9]?[0-9]*))(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?
+# 
