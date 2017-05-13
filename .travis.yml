@@ -14,5 +14,7 @@ before_install:
   - sudo cpanm --notest Dist::Zilla::PluginBundle::RJBS
 # AutoPrereqs is ok with the others
   - dzil authordeps --missing | xargs sudo cpanm --notest
+# Though not with the t dependencies
+  - sudo cpanm --notest Test::More Test::More::UTF8 Log::Log4perl Log::Any Log::Any::Adapter Log::Any::Adapter::Log4perl
 script:
   - dzil test --release
