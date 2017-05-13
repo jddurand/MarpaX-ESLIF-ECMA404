@@ -68,3 +68,15 @@ META.*
 *~
 *.gz
 *.pdb
+
+#############
+## Perl
+#############
+blib/
+Makefile.old
+MYMETA.*
+Makefile
+pm_to_blib
+MarpaX-Languages-IDL-AST-*
+MarpaX-Languages-IDL-AST-*.tar.gz
+.build
