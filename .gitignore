@@ -77,6 +77,6 @@ Makefile.old
 MYMETA.*
 Makefile
 pm_to_blib
-MarpaX-Languages-ECMA404-*
-MarpaX-Languages-ECMA404-*.tar.gz
+MarpaX-ESLIF-ECMA404-*
+MarpaX-ESLIF-ECMA404-*.tar.gz
 .build
