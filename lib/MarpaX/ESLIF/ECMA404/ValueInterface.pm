@@ -9,6 +9,12 @@ package MarpaX::ESLIF::ECMA404::ValueInterface;
 
 # AUTHORITY
 
+my $_BACKSPACE = chr(0x0008);
+my $_FORMFEED  = chr(0x000C);
+my $_NEWLINE   = chr(0x000A);
+my $_RETURN    = chr(0x000D);
+my $_TAB       = chr(0x0009);
+
 # -----------
 # Constructor
 # -----------
@@ -26,50 +32,51 @@ sub maxParses          { 0 }  # Maximum number of parse tree values
 # ----------------
 # Specific actions
 # ----------------
-sub empty_string            { ''               }
-sub backspace_character     { chr(0x0008)      }
-sub formfeed_character      { chr(0x000C)      }
-sub newline_character       { chr(0x000A)      }
-sub return_character        { chr(0x000D)      }
-sub tabulation_character    { chr(0x0009)      }
-sub hex2codepoint_character { chr(oct("0x$_[2]")) }
-sub empty_array_ref         { []               }
-sub pairs                   { [ $_[1], $_[3] ] }
-sub empty_hash_ref          { {}               }
+sub empty_string            { ''               } # chars ::=
+sub hex2codepoint_character { chr(hex($_[3]))  } # char  ::= '\\' 'u' /[[:xdigit:]]{4}/
+sub pairs                   { [ $_[1], $_[3] ] } # pairs ::= string ':' value
+sub backspace_character     { $_BACKSPACE      } # char  ::= '\\' 'b'
+sub formfeed_character      { $_FORMFEED       } # char  ::= '\\' 'f'
+sub newline_character       { $_NEWLINE        } # char  ::= '\\' 'n'
+sub return_character        { $_RETURN         } # char  ::= '\\' 'r'
+sub tabulation_character    { $_TAB            } # char  ::= '\\' 't'
 #
-# ... Methods that need some hacking -;
+# Methods that need some hacking -;
 #
 # Separator is PART of the arguments i.e.:
 # ($self, $value1, $separator, $value2, $separator, etc...)
 #
 # C.f. http://www.perlmonks.org/?node_id=566543 for explanation of the method
 #
-sub array_ref {
-  #
-  # elements ::= value+ separator => ','
-  #
-  # Where value is always a token
-  #
-  [ map { $_[$_*2+1] } 0..int(@_/2)-1 ]
+sub array_ref {                                 # elements ::= value*
+    #
+    # elements ::= value+ separator => ','
+    #
+    # i.e. arguments are: ($self, $value1, $separator, $value2, $separator, etc..., $valuen)
+    # Where value is always a token
+    #
+    [ map { $_[$_*2+1] } 0..int(@_/2)-1 ]
 }
 
-sub members {
-  #
-  # members  ::= pairs+ separator => ','
-  #
-  my %hash;
-  # Where pairs is always an array ref [string,value]
-  #
-  foreach (map { $_[$_*2+1] } 0..int(@_/2)-1) {
-    $hash{$_->[0]} = $_->[1]
-  }
-  \%hash
+sub members {                                   # members  ::= pairs*
+    #
+    # members  ::= pairs+ separator => ','
+    #
+    # i.e. arguments are: ($self, $pair1, $separator, $pair2, $separator, etc..., $pairn)
+    #
+    my %hash;
+    # Where pairs is always an array ref [string,value]
+    #
+    foreach (map { $_[$_*2+1] } 0..int(@_/2)-1) {
+        $hash{$_->[0]} = $_->[1]
+    }
+    \%hash
 }
 
 #
-# ... result getter and setter
+# Result getter and setter
 #
-sub getResult          { $_[0]->[0] }
-sub setResult          { $_[0]->[0] = $_[1] }
+sub getResult { $_[0]->[0] }
+sub setResult { $_[0]->[0] = $_[1] }
 
 1;

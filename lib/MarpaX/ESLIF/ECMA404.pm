@@ -10,7 +10,7 @@ package MarpaX::ESLIF::ECMA404;
 # AUTHORITY
 
 use Carp qw/croak/;
-use MarpaX::ESLIF 2.0.9;   # :discard[on] and :discard[off] handing in parse() method start here
+use MarpaX::ESLIF 2.0.9;   # :discard[on] and :discard[off] handling in parse() method start here
 use MarpaX::ESLIF::ECMA404::RecognizerInterface;
 use MarpaX::ESLIF::ECMA404::ValueInterface;
 
@@ -81,14 +81,14 @@ value    ::= string
 # -----------
 # JSON string
 # -----------
-# Executed in the top grammar and not as a lexeme. This is why we shutdown temporarirly discard in it
+# Executed in the top grammar and not as a lexeme. This is why we shutdown temporarily :discard in it
 #
 string     ::= '"' discardOff chars '"' discardOn    action => ::copy[2]               # Only chars is of interest
 discardOff ::=                                                                         # Nullable rule used to disable discard
 discardOn  ::=                                                                         # Nullable rule used to enable discard
 
-event :discard[on]  = nulled discardOn                                                 # Implementation of discard disabing
-event :discard[off] = nulled discardOff                                                # Implementation of discard enabling
+event :discard[on]  = nulled discardOn                                                 # Implementation of discard disabing with reserved ':discard[on]' keyword
+event :discard[off] = nulled discardOff                                                # Implementation of discard enabling with reserved ':discard[off]' keyword
 
 # Default action is ::concat, that will return undef if there is nothing, so we concat ourself to handle this case
 chars   ::= filled                                                                     # Returns ${filled}
@@ -98,12 +98,12 @@ char    ::= [^"\\[:cntrl:]]                                                     
           | '\\' '"'                                 action => ::copy[1]               # Returns double quote
           | '\\' '\\'                                action => ::copy[1]               # Returns backslash
           | '\\' '/'                                 action => ::copy[1]               # Returns slash
-          | '\\b'                                    action => backspace_character     # Returns perl's vision of \b
-          | '\\f'                                    action => formfeed_character      # Returns perl's vision of \f
-          | '\\n'                                    action => newline_character       # Returns perl's vision of \n
-          | '\\r'                                    action => return_character        # Returns perl's vision of \r
-          | '\\t'                                    action => tabulation_character    # Returns perl's vision of \t
-          | '\\u' /[[:xdigit:]]{4}/                  action => hex2codepoint_character # Returns perl's vision of \u
+          | '\\' 'b'                                 action => backspace_character     # Returns perl's vision of \b
+          | '\\' 'f'                                 action => formfeed_character      # Returns perl's vision of \f
+          | '\\' 'n'                                 action => newline_character       # Returns perl's vision of \n
+          | '\\' 'r'                                 action => return_character        # Returns perl's vision of \r
+          | '\\' 't'                                 action => tabulation_character    # Returns perl's vision of \t
+          | '\\' 'u' /[[:xdigit:]]{4}/               action => hex2codepoint_character # Returns perl's vision of \u
 
 # -------------------------------------------------------------------------------------------------------------
 # JSON number: defined as a single terminal: ECMA404 numbers can be are 100% compliant with perl numbers syntax
