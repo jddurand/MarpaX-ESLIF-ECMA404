@@ -2,13 +2,14 @@ language: perl
 sudo: required
 before_install:
   - sudo apt-get update
-  - sudo apt-get install cpanminus
-# Standard Dist::Zilla, this will install a bunch of prereqs, speeding up the upgrade
-  - sudo apt-get install libdist-zilla-perl
+  - sudo apt-get install cpanminus libdist-zilla-perl
 # Upgrade Dist::Zilla
   - sudo cpanm --notest Dist::Zilla
 # This is not in the prereqs it seems, but the latest MooseX::Role::Parameterized is highly recommended -; let's do it for Moose as well
   - sudo cpanm --notest Moose MooseX::Role::Parameterized
+# AutoPrereqs will not see it - do not know why
   - sudo cpanm --notest Dist::Zilla::PluginBundle::RJBS
-  - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
-  - source ~/travis-perl-helpers/init --auto
+# AutoPrereqs is ok with the others
+  - dzil authordeps --missing | xargs sudo cpanm --notest
+script:
+  - dzil test --release
