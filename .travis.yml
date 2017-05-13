@@ -1,4 +1,7 @@
-language: perl
+#
+# Saying language: perl will FAIL BY DEFAULT - come on guys...
+#
+language: c
 sudo: required
 before_install:
   - sudo apt-get update
