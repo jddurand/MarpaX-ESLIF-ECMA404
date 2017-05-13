@@ -1,0 +1,13 @@
+language: perl
+sudo: required
+before_install:
+  - sudo cpanm --notest Dist::Zilla
+#
+# This is not in the prereqs it seems
+# but the latest MooseX::Role::Parameterized
+# is highly recommended -; let's do it for Moose as well
+#
+  - sudo sudo cpanm --notest Moose MooseX::Role::Parameterized
+  - dzil authordeps --missing | sudo xargs cpanm --notest
+script:
+  - dzil test --release

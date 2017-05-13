@@ -1,3 +1,7 @@
+=for html <a href="https://travis-ci.org/jddurand/MarpaX-ESLIF-ECMA404"><img src="https://travis-ci.org/jddurand/MarpaX-ESLIF-ECMA404.svg?branch=master" alt="Travis CI build status" height="18"></a> <a href="https://badge.fury.io/gh/jddurand%2FMarpaX-ESLIF-ECMA404"><img src="https://badge.fury.io/gh/jddurand%2FMarpaX-ESLIF-ECMA404.svg" alt="GitHub version" height="18"></a> <a href="http://opensource.org/licenses/MIT" rel="nofollow noreferrer"><img src="https://img.shields.io/badge/license-Perl%205-blue.svg" alt="License Perl5" height="18">
+
+=cut
+
 use strict;
 use warnings FATAL => 'all';
 
@@ -9,6 +13,20 @@ package MarpaX::ESLIF::ECMA404;
 
 # AUTHORITY
 
+=head1 DESCRIPTION
+
+This module decodes strict JSON input using L<MarpaX::ESLIF>.
+
+=head1 SYNOPSIS
+
+    use MarpaX::ESLIF::ECMA404;
+
+    my $ecma404 = MarpaX::ESLIF::ECMA404->new();
+    my $input   = '["JSON",{},[]]';
+    my $json    = $ecma404->decode($input);
+
+=cut
+
 use Carp qw/croak/;
 use MarpaX::ESLIF 2.0.9;   # :discard[on] and :discard[off] handling in parse() method start here
 use MarpaX::ESLIF::ECMA404::RecognizerInterface;
@@ -16,10 +34,32 @@ use MarpaX::ESLIF::ECMA404::ValueInterface;
 
 our $_BNF    = do { local $/; <DATA> };
 
+=head1 SUBROUTINES/METHODS
+
+=head2 new($class, %options)
+
+Instantiate a new object. Takes as parameter an optional hash of options that can be:
+
+=over
+
+=item logger
+
+An optional logger object instance that must do methods compliant with L<Log::Any> interface.
+
+=back
+
+=cut
+
 sub new {
   my ($pkg, %options) = @_;
   bless \MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($options{logger}), $_BNF), $pkg
 }
+
+=head2 decode($self, $input)
+
+Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation.
+
+=cut
 
 sub decode {
   my ($self, $input) = @_;
@@ -44,6 +84,12 @@ sub decode {
   # ------------------------
   $valueInterface->getResult
 }
+
+=head1 SEE ALSO
+
+L<MarpaX::ESLIF>, L<Log::Any>
+
+=cut
 
 1;
 

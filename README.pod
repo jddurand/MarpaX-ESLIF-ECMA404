@@ -1,0 +1,34 @@
+=head1 DESCRIPTION
+
+This module decodes strict JSON input using L<MarpaX::ESLIF>.
+
+=head1 SYNOPSIS
+
+    use MarpaX::ESLIF::ECMA404;
+
+    my $ecma404 = MarpaX::ESLIF::ECMA404->new();
+    my $input   = '["JSON",{},[]]';
+    my $json    = $ecma404->decode($input);
+
+=head1 SUBROUTINES/METHODS
+
+=head2 new($class, %options)
+
+Instantiate a new object. Takes as parameter an optional hash of options that can be:
+
+=over
+
+=item logger
+
+An optional logger object instance that must do methods compliant with L<Log::Any> interface.
+
+=back
+
+=head2 decode($self, $input)
+
+Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation.
+
+=head1 SEE ALSO
+
+L<MarpaX::ESLIF>, L<Log::Any>
+
