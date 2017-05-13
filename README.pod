@@ -26,7 +26,7 @@ An optional logger object instance that must do methods compliant with L<Log::An
 
 =head2 decode($self, $input)
 
-Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation.
+Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation, or C<undef> in case of failure.
 
 =head1 SEE ALSO
 
