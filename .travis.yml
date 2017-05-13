@@ -2,11 +2,17 @@ language: perl
 sudo: required
 before_install:
   - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
-  - source ~/travis-perl-helpers/init --auto
+  - source ~/travis-perl-helpers/init
+  - build-dist
+  - cd $BUILD_DIR             # $BUILD_DIR is set by the build-dist command
+install:
+  - local-lib
+  - cpan-install Moose MooseX::Role::Parameterized Dist::Zilla::PluginBundle::RJBS
+  - cpan-install --deps       # installs prereqs, including recommends
+  - cpan-install --coverage   # installs converage prereqs, if enabled
 before_script:
-# This is not in the prereqs it seems, but the latest MooseX::Role::Parameterized is highly recommended -; let's do it for Moose as well
-  - cpanm --notest Moose MooseX::Role::Parameterized
-  - cpanm --notest Dist::Zilla::PluginBundle::RJBS
-  - dzil authordeps --missing | sudo cpanm --notest
+  - coverage-setup
 script:
-  - dzil test --release
+  - prove -l -j$(test-jobs) $(test-files)   # parallel testing
+after_success:
+  - coverage-report
