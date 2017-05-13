@@ -1,6 +1,11 @@
 language: perl
 sudo: required
-before_install:
+before_script:
+  - sudo apt-get update
+  - sudo apt-get install cpanminus
+# Standard Dist::Zilla, this will install a bunch of prereqs, speeding up the upgrade
+  - sudo apt-get install libdist-zilla-perl
+# Upgrade Dist::Zilla
   - sudo cpanm --notest Dist::Zilla
 #
 # This is not in the prereqs it seems
@@ -8,6 +13,7 @@ before_install:
 # is highly recommended -; let's do it for Moose as well
 #
   - sudo sudo cpanm --notest Moose MooseX::Role::Parameterized
+  - sudo cpanm --notest Dist::Zilla::PluginBundle::RJBS
   - dzil authordeps --missing | sudo xargs cpanm --notest
 script:
   - dzil test --release
