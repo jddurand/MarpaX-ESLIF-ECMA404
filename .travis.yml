@@ -1,20 +1,16 @@
 language: perl
-sudo: false
-before_install:
-  - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
-  - source ~/travis-perl-helpers/init
-  - build-perl
-  - perl -V
-  - cpan-install Dist::Zilla::PluginBundle::RJBS # not seen by --deps
-  - cpan-install Pod::Weaver::PluginBundle::RJBS # Ditto
-  - build-dist
-  - cd $BUILD_DIR             # $BUILD_DIR is set by the build-dist command
-install:
-  - cpan-install --deps       # installs prereqs, including recommends
-  - cpan-install --coverage   # installs converage prereqs, if enabled
+sudo: required
 before_script:
-  - coverage-setup
+  - sudo apt-get update
+  - sudo apt-get install cpanminus
+# Standard Dist::Zilla, this will install a bunch of prereqs, speeding up the upgrade
+  - sudo apt-get install libdist-zilla-perl
+# Upgrade Dist::Zilla
+  - sudo cpanm --notest Dist::Zilla
+# This is not in the prereqs it seems, but the latest MooseX::Role::Parameterized is highly recommended -; let's do it for Moose as well
+  - sudo cpanm --notest Moose MooseX::Role::Parameterized
+# For my scripts, prefered over dzil --listdeps that is too long
+  - sudo cpanm --notest Dist::Zilla::PluginBundle::RJBS
+  - dzil authordeps --missing | xargs sudo cpanm --notest
 script:
-  - prove -l -j$(test-jobs) $(test-files)   # parallel testing
-after_success:
-  - coverage-report
+  - dzil test --release
