@@ -57,7 +57,7 @@ sub new {
 
 =head2 decode($self, $input)
 
-Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation.
+Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation, or C<undef> in case of failure.
 
 =cut
 
@@ -77,7 +77,7 @@ sub decode {
   # ---------------
   # Parse the input
   # ---------------
-  ${$self}->parse($recognizerInterface, $valueInterface);
+  return unless ${$self}->parse($recognizerInterface, $valueInterface);
 
   # ------------------------
   # Return the value
