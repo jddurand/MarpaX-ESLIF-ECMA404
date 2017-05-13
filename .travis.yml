@@ -13,7 +13,7 @@ before_install:
 # AutoPrereqs will not see it - do not know why
   - sudo cpanm --notest Dist::Zilla::PluginBundle::RJBS
 # AutoPrereqs is ok with the others
-  - dzil listdeps --omit-core `perl -e 'print $];'` | xargs sudo cpanm --notest
   - dzil authordeps --missing | xargs sudo cpanm --notest
+  - dzil listdeps --omit-core `perl -e 'print $];'` | xargs sudo cpanm --notest
 script:
   - dzil test --release
