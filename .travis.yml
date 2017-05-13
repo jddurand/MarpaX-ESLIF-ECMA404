@@ -12,6 +12,7 @@ before_install:
   - sudo cpanm --notest Moose MooseX::Role::Parameterized
 # AutoPrereqs will not see it - do not know why
   - sudo cpanm --notest Dist::Zilla::PluginBundle::RJBS
+  - sudo cpanm --notest Test::EOL Test::Kwalitee Test::NoTabs Test::Pod::Coverage
 # AutoPrereqs is ok with the others
   - dzil authordeps --missing | xargs sudo cpanm --notest
   - dzil listdeps --omit-core `perl -e 'print $];'` | xargs sudo cpanm --notest
