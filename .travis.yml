@@ -6,6 +6,7 @@ before_install:
   - build-perl
   - perl -V
   - cpan-install Dist::Zilla::PluginBundle::RJBS # not seen by --deps
+  - cpan-install Pod::Weaver::PluginBundle::RJBS # Ditto
   - build-dist
   - cd $BUILD_DIR             # $BUILD_DIR is set by the build-dist command
 install:
