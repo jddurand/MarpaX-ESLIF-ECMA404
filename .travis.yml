@@ -5,6 +5,7 @@ before_install:
   - source ~/travis-perl-helpers/init
   - build-perl
   - perl -V
+  - cpan-install Dist::Zilla::PluginBundle::RJBS # not seen by --deps
   - build-dist
   - cd $BUILD_DIR             # $BUILD_DIR is set by the build-dist command
 install:
