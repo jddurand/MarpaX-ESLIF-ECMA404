@@ -1,6 +1,14 @@
-=head1 DESCRIPTION
+=pod
 
-This module decodes strict JSON input using L<MarpaX::ESLIF>.
+=encoding UTF-8
+
+=head1 NAME
+
+MarpaX::ESLIF::ECMA404 - JSON Data Interchange Format following ECMA-404 specification
+
+=head1 VERSION
+
+version 0.003
 
 =head1 SYNOPSIS
 
@@ -9,6 +17,12 @@ This module decodes strict JSON input using L<MarpaX::ESLIF>.
     my $ecma404 = MarpaX::ESLIF::ECMA404->new();
     my $input   = '["JSON",{},[]]';
     my $json    = $ecma404->decode($input);
+
+=head1 DESCRIPTION
+
+This module decodes strict JSON input using L<MarpaX::ESLIF>.
+
+=for html <a href="https://travis-ci.org/jddurand/MarpaX-ESLIF-ECMA404"><img src="https://travis-ci.org/jddurand/MarpaX-ESLIF-ECMA404.svg?branch=master" alt="Travis CI build status" height="18"></a> <a href="https://badge.fury.io/gh/jddurand%2FMarpaX-ESLIF-ECMA404"><img src="https://badge.fury.io/gh/jddurand%2FMarpaX-ESLIF-ECMA404.svg" alt="GitHub version" height="18"></a> <a href="http://opensource.org/licenses/MIT" rel="nofollow noreferrer"><img src="https://img.shields.io/badge/license-Perl%205-blue.svg" alt="License Perl5" height="18">
 
 =head1 SUBROUTINES/METHODS
 
@@ -32,3 +46,15 @@ Parses JSON that is in C<$input> and returns a perl variable containing the corr
 
 L<MarpaX::ESLIF>, L<Log::Any>
 
+=head1 AUTHOR
+
+Jean-Damien Durand <jeandamiendurand@free.fr>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2017 by Jean-Damien Durand.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
