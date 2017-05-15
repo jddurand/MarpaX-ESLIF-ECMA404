@@ -10,76 +10,68 @@ package MarpaX::ESLIF::ECMA404;
 # AUTHORITY
 
 use Carp qw/croak/;
-use MarpaX::ESLIF 2;
+use MarpaX::ESLIF 2.0.9;   # :discard[on] and :discard[off] handing in parse() method start here
 use MarpaX::ESLIF::ECMA404::RecognizerInterface;
 use MarpaX::ESLIF::ECMA404::ValueInterface;
 
-our $_ESLIF;                           # Singleton instanciated if needed
-our $_DATA = do { local $/; <DATA> };  # JSON grammar
+our $_BNF    = do { local $/; <DATA> };
 
 sub new {
-    #
-    # Without a first parameter, that must be a Log::Any compliant thingy,
-    # we will use a grammar generated via a MarpaX::ESLIF singleton
-    #
-    ($#_ >= 1)
-        ?
-        bless \MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($_[1]), $_DATA), $_[0]
-        :
-        bless \MarpaX::ESLIF::Grammar->new(($_ESLIF //= MarpaX::ESLIF->new()), $_DATA), $_[0]
+  my ($pkg, %options) = @_;
+  bless \MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($options{logger}), $_BNF), $pkg
 }
 
-sub decode_json {
-  my $recognizerInterface = MarpaX::ESLIF::ECMA404::RecognizerInterface->new($_[1]);
+sub decode {
+  my ($self, $input) = @_;
 
-  #
-  # The only reason why we cannot use the grammar parse() interface is because we
-  # have the need for the :discard[on] and :discard[off] events, even if they will NEVER
-  # be propagated to user space. Therefore there is NO call to resume() -;
-  #
-  my $eslifRecognizer = MarpaX::ESLIF::Recognizer->new(${$_[0]}, $recognizerInterface);
-  $eslifRecognizer->scan();
+  # ----------------------------------
+  # Instanciate a recognizer interface
+  # ----------------------------------
+  my $recognizerInterface = MarpaX::ESLIF::ECMA404::RecognizerInterface->new($input);
 
-  my $valueInterface = MarpaX::ESLIF::ECMA404::ValueInterface->new;
+  # -----------------------------
+  # Instanciate a value interface
+  # -----------------------------
+  my $valueInterface = MarpaX::ESLIF::ECMA404::ValueInterface->new();
 
-  #print STDERR "ATTACH ME: PID $$\n";
-  #sleep(10);
-  MarpaX::ESLIF::Value->new($eslifRecognizer, $valueInterface)->value;
-  $valueInterface->getResult;
+  # ---------------
+  # Parse the input
+  # ---------------
+  ${$self}->parse($recognizerInterface, $valueInterface);
+
+  # ------------------------
+  # Return the value
+  # ------------------------
+  $valueInterface->getResult
 }
 
 1;
 
 __DATA__
 #
+# Default action is to propagate the first RHS value
+#
+:default ::= action => ::shift
+#
 # JSON starting point is value
 #
 :start ::= value
 # ----------------------------
 # JSON Grammar as per ECMA-404
-# I explicitely expose string grammar for two reasons:
-# - The sub-grammar have inner actions that I want to be executed
-# - The only drawback of not using a lexeme is that we have to explicitely disable :discard within string
-#   ... This is done with the discardOn and discardOff nullables
+# I explicitely expose string grammar for one reason: inner string elements have specific actions
 # ----------------------------
-object   ::= '{' members '}'                         action => ::copy[1] # If nullable, members is an empty hash ref
-members  ::= pairs* separator => ','                 action => members
-pairs    ::= string ':' value                        action => pairs
-array    ::= '[' elements ']'                        action => ::copy[1] # If nullable, elements is an empty array ref
-elements ::= value* separator => ','                 action => array_ref
-value    ::= string                                  action => ::shift
-           | number                                  action => ::shift
-           | object                                  action => ::shift
-           | array                                   action => ::shift
-           | 'true'                                  action => ::shift
-           | 'false'                                 action => ::shift
-           | 'null'                                  action => ::shift
-
-event :discard[on] = nulled discardOn
-discardOn ::=
-
-event :discard[off] = nulled discardOff
-discardOff ::=
+object   ::= '{' members '}'         action => ::copy[1] # Returns ${members}
+members  ::= pairs* separator => ',' action => members   # Returns a hash reference of all @{$pairs} (separator have to be skipped)
+pairs    ::= string ':' value        action => pairs     # Returns an array reference [ $string, $value ]
+array    ::= '[' elements ']'        action => ::copy[1] # Returns ${elements}
+elements ::= value* separator => ',' action => array_ref # Returns an array reference [ @{$value} ] (separator have to be skipped)
+value    ::= string
+           | number
+           | object
+           | array
+           | 'true'
+           | 'false'
+           | 'null'
 
 # -------------------------
 # Unsignificant whitespaces
@@ -89,30 +81,38 @@ discardOff ::=
 # -----------
 # JSON string
 # -----------
-# Executed in the top grammar and not as a lexeme
+# Executed in the top grammar and not as a lexeme. This is why we shutdown temporarirly discard in it
 #
-string  ::= '"' discardOff chars '"' discardOn       action => ::copy[2]               # Only chars is of interest
-# Default action is ::concat, that will return undef if there is nothing, so we concat ourself to handle this case
-chars   ::= filled                                   action => ::shift
-filled  ::= char+                                    action => ::concat                # This is the default action indeed
-chars   ::=                                          action => empty_string            # Instead of an undef
-char    ::= [^"\\[:cntrl:]]                          action => ::shift                 # Alias to ::copy[0]
-          | '\\' '"'                                 action => ::copy[1]               # Faster than a callback to perl
-          | '\\' '\\'                                action => ::copy[1]               # Faster than a callback to perl
-          | '\\' '/'                                 action => ::copy[1]               # Faster than a callback to perl
-          | '\\b'                                    action => backspace_character     # Needs perl chr()
-          | '\\f'                                    action => formfeed_character      # Needs perl chr()
-          | '\\n'                                    action => newline_character       # Needs perl chr()
-          | '\\r'                                    action => return_character        # Needs perl chr()
-          | '\\t'                                    action => tabulation_character    # Needs perl chr()
-          | '\\u' /[[:xdigit:]]{4}/                  action => hex2codepoint_character # Needs perl chr()
-# -----------
-# JSON number
-# -----------
-# Ok to be a lexeme, the final result is always compliant with what perl understands
-#
-number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?/        action => ::concat # decimal string representation is perfectly ok in perl -;
+string     ::= '"' discardOff chars '"' discardOn    action => ::copy[2]               # Only chars is of interest
+discardOff ::=                                                                         # Nullable rule used to disable discard
+discardOn  ::=                                                                         # Nullable rule used to enable discard
 
+event :discard[on]  = nulled discardOn                                                 # Implementation of discard disabing
+event :discard[off] = nulled discardOff                                                # Implementation of discard enabling
+
+# Default action is ::concat, that will return undef if there is nothing, so we concat ourself to handle this case
+chars   ::= filled                                                                     # Returns ${filled}
+filled  ::= char+                                    action => ::concat                # Returns join('', @{$char})
+chars   ::=                                          action => empty_string            # Prefering empty string instead of undef
+char    ::= [^"\\[:cntrl:]]                                                            # Returns matched data
+          | '\\' '"'                                 action => ::copy[1]               # Returns double quote
+          | '\\' '\\'                                action => ::copy[1]               # Returns backslash
+          | '\\' '/'                                 action => ::copy[1]               # Returns slash
+          | '\\b'                                    action => backspace_character     # Returns perl's vision of \b
+          | '\\f'                                    action => formfeed_character      # Returns perl's vision of \f
+          | '\\n'                                    action => newline_character       # Returns perl's vision of \n
+          | '\\r'                                    action => return_character        # Returns perl's vision of \r
+          | '\\t'                                    action => tabulation_character    # Returns perl's vision of \t
+          | '\\u' /[[:xdigit:]]{4}/                  action => hex2codepoint_character # Returns perl's vision of \u
+
+# -------------------------------------------------------------------------------------------------------------
+# JSON number: defined as a single terminal: ECMA404 numbers can be are 100% compliant with perl numbers syntax
+# -------------------------------------------------------------------------------------------------------------
+#
+number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?/
+
+# Original BNF for number follows
+#
 #number    ~ int
 #          | int frac
 #          | int exp
@@ -127,7 +127,3 @@ number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?/ 
 #exp       ~ e digits
 #digits    ~ digit*
 #e         ~ /e[+-]?/i
-
-#
-# \-?(?:[0-9]|(?:[1-9]?[0-9]*))(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?
-# 

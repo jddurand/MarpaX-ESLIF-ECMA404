@@ -4,8 +4,9 @@ use warnings FATAL => 'all';
 use Test::More;
 use Test::More::UTF8;
 use Log::Log4perl qw/:easy/;
-use Log::Any::Adapter;
 use Log::Any qw/$log/;
+use Log::Any::Adapter;
+use Log::Any::Adapter::Log4perl;  # Just to make sure dzil catches it
 
 #
 # Init log
@@ -22,13 +23,11 @@ Log::Any::Adapter->set('Log4perl');
 
 BEGIN { require_ok('MarpaX::ESLIF::ECMA404') };
 
-my $ecma404 = MarpaX::ESLIF::ECMA404->new($log);
+my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger => $log);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
 my $input = do { local $/; <DATA> };
-print STDERR "INPUT:\n$input";
-use Devel::Peek;
-Dump($ecma404->json_decode($input), 10000000);
+ok($ecma404->decode($input));
 
 done_testing();
 __DATA__
