@@ -61,8 +61,6 @@ sub members {
   # Where pairs is always an array ref [string,value]
   #
   foreach (map { $_[$_*2+1] } 0..int(@_/2)-1) {
-    use Data::Dumper;
-    print STDERR Dumper($_);
     $hash{$_->[0]} = $_->[1]
   }
   \%hash
