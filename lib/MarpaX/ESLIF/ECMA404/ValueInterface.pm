@@ -218,6 +218,26 @@ sub members {                                   # members  ::= pairs*
     \%hash
 }
 
+=head3 perl_true($self)
+
+Retursn a perl true value.
+
+=cut
+
+sub perl_true {
+    return 1
+}
+
+=head3 perl_false($self)
+
+Retursn a perl false value.
+
+=cut
+
+sub perl_false {
+    return 0
+}
+
 =head1 SEE ALSO
 
 L<MarpaX::ESLIF::ECMA404>

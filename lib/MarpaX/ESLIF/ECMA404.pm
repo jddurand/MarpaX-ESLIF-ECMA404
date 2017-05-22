@@ -115,8 +115,8 @@ value    ::= string
            | number
            | object
            | array
-           | 'true'
-           | 'false'
+           | 'true'                  action => perl_true  # Returns a perl true value
+           | 'false'                 action => perl_false # Returns a perl false value
            | 'null'
 
 # -------------------------
