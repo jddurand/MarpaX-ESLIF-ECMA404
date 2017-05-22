@@ -27,7 +27,7 @@ BEGIN { require_ok('MarpaX::ESLIF::ECMA404') };
 my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger => $log);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
-foreach (__PACKAGE__->section_data_names) {
+foreach (sort __PACKAGE__->section_data_names) {
     my $want_ok = ($_ =~ /^ok/);
     my $want_ko = ($_ =~ /^ko/);
     #
