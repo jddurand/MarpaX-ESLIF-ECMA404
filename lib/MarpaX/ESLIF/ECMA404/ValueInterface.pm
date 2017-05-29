@@ -41,7 +41,7 @@ sub new                { bless [], $_[0] }
 
 =head2 Required methods
 
-=head3 isWithHighRankOnly($self)
+=head3 isWithHighRankOnly
 
 Returns a true or a false value, indicating if valuation should use highest ranked rules or not, respectively. Default is a true value.
 
@@ -49,7 +49,7 @@ Returns a true or a false value, indicating if valuation should use highest rank
 
 sub isWithHighRankOnly { 1 }  # When there is the rank adverb: highest ranks only ?
 
-=head3 isWithOrderByRank($self)
+=head3 isWithOrderByRank
 
 Returns a true or a false value, indicating if valuation should order by rule rank or not, respectively. Default is a true value.
 
@@ -57,7 +57,7 @@ Returns a true or a false value, indicating if valuation should order by rule ra
 
 sub isWithOrderByRank  { 1 }  # When there is the rank adverb: order by rank ?
 
-=head3 isWithAmbiguous($self)
+=head3 isWithAmbiguous
 
 Returns a true or a false value, indicating if valuation should allow ambiguous parse tree or not, respectively. Default is a false value.
 
@@ -65,7 +65,7 @@ Returns a true or a false value, indicating if valuation should allow ambiguous 
 
 sub isWithAmbiguous    { 0 }  # Allow ambiguous parse ?
 
-=head3 isWithNull($self)
+=head3 isWithNull
 
 Returns a true or a false value, indicating if valuation should allow a null parse tree or not, respectively. Default is a false value.
 
@@ -73,7 +73,7 @@ Returns a true or a false value, indicating if valuation should allow a null par
 
 sub isWithNull         { 0 }  # Allow null parse ?
 
-=head3 maxParses($self)
+=head3 maxParses
 
 Returns the number of maximum parse tree valuations. Default is unlimited (i.e. a false value).
 
@@ -81,7 +81,7 @@ Returns the number of maximum parse tree valuations. Default is unlimited (i.e. 
 
 sub maxParses          { 0 }  # Maximum number of parse tree values
 
-=head3 getResult($self)
+=head3 getResult
 
 Returns the current parse tree value.
 
@@ -89,7 +89,7 @@ Returns the current parse tree value.
 
 sub getResult { $_[0]->[0] }
 
-=head3 setResult($self)
+=head3 setResult
 
 Sets the current parse tree value.
 
@@ -103,7 +103,7 @@ sub setResult { $_[0]->[0] = $_[1] }
 
 =head2 Specific actions
 
-=head3 empty_string($self)
+=head3 empty_string
 
 Action for rule C<chars ::=>.
 
@@ -111,47 +111,43 @@ Action for rule C<chars ::=>.
 
 sub empty_string            { ''               } # chars ::=
 
-=head3 surrogatepair_character($self)
+=head3 unicode
 
-Action for rule C<char ::= '\\' /(?:u[[:xdigit:]]{4}){2}/
+Action for rule C<char ::= /(?:\\u[[:xdigit:]]{4})+/
 
 =cut
 
-sub surrogatepair_character_maybe {
-  #
-  # Just a painful convention -;
-  #
-  my ($self, $surrogatepair) = @_;
-  $surrogatepair =~ /\\u([[:xdigit:]]{4})\\u([[:xdigit:]]{4})/;
-  my ($low, $high) = (hex($1), hex($2));
-  #
-  # Okay... Are these REALLY surrogate pairs ?
-  #
-  if (($high >= 0xDC00) && ($high <= 0xDFFF) &&
-      ($low >= 0xDC00) && ($low <= 0xDFFF)) {
-    return chr((($low - 0xD800) * 0x400) + $high - 0xDC00 + 0x10000 )
-  } else {
-    return chr(hex($low)) . chr(hex($high))
+sub unicode {
+  my ($self, $u) = @_;
+
+  my @hex;
+  while ($u =~ m/\\u([[:xdigit:]]{4})/g) {
+    push(@hex, hex($1))
   }
+
+  my $result;
+  while (@hex) {
+    #
+    # Surrogate pair ?
+    #
+    if ($#hex > 0) {
+      my ($high, $low) = @hex;
+      #
+      # Okay... Are these REALLY surrogate pairs ?
+      #
+      if (($high >= 0xD800) && ($high <= 0xDBFF) && ($low >= 0xDC00) && ($low <= 0xDFFF)) {
+        $result .= chr((($high - 0xD800) * 0x400) + ($low - 0xDC00 + 0x10000));
+        splice(@hex, 0, 2);
+        next
+      }
+    }
+    $result .= chr(shift @hex)
+  }
+
+  $result
 }
 
-=head3 hex2codepoint_character($self)
-
-Action for rule C<char ::= '\\' 'u' /[[:xdigit:]]{4}/>.
-
-=cut
-
-sub hex2codepoint_character { chr(hex($_[3]))  } # char  ::= '\\' 'u' /[[:xdigit:]]{4}/
-
-=head3 pairs($self)
-
-Action for rule C<cpairs ::= string ':' value>.
-
-=cut
-
-sub pairs                   { [ $_[1], $_[3] ] } # pairs ::= string ':' value
-
-=head3 members($self)
+=head3 members
 
 Action for rule C<members  ::= pairs* separator => ','> hide-separator => 1
 

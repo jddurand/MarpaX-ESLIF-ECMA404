@@ -51,7 +51,7 @@ foreach (sort __PACKAGE__->section_data_names) {
 done_testing();
 __DATA__
 __[ ok / from https://en.wikipedia.org/wiki/JSON#Data_portability_issues ]__
-{ "face1": "😂", "face2": "\uD83D\uDE02" }
+{ "face1": "😂", "face2": "\u849c\uD83D\uDE02\u849c\u8089" }
 __[ ok / from https://stackoverflow.com/questions/7460645/how-to-convert-json-string-that-contains-encoded-unicode ]__
 {"records":[{"description":"\u849c\u8089","id":282}]}
 __[ ok / from http://www.json-generator.com/ compact ]__

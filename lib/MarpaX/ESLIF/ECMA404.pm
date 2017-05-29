@@ -148,8 +148,7 @@ char    ::= [^"\\[:cntrl:]]                                                     
           | '\\' 'n'                                           action => ::u8"\x{0A}"
           | '\\' 'r'                                           action => ::u8"\x{0D}"
           | '\\' 't'                                           action => ::u8"\x{09}"
-          | /(?:\\u[[:xdigit:]]{4}){2}/                        action => surrogatepair_character_maybe # Handles eventual UTF-16 surrogate pair
-          | '\\' 'u' /[[:xdigit:]]{4}/                         action => hex2codepoint_character       # Single unicode code point
+          | /(?:\\u[[:xdigit:]]{4})+/                          action => unicode
 
 # -------------------------------------------------------------------------------------------------------------
 # JSON number: defined as a single terminal: ECMA404 numbers can be are 100% compliant with perl numbers syntax
