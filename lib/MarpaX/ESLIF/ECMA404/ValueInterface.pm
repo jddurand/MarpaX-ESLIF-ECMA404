@@ -111,6 +111,31 @@ Action for rule C<chars ::=>.
 
 sub empty_string            { ''               } # chars ::=
 
+=head3 surrogatepair_character($self)
+
+Action for rule C<char ::= '\\' /(?:u[[:xdigit:]]{4}){2}/
+
+=cut
+
+sub surrogatepair_character_maybe {
+  #
+  # Just a painful convention -;
+  #
+  my ($self, $surrogatepair) = @_;
+  $surrogatepair =~ /\\u([[:xdigit:]]{4})\\u([[:xdigit:]]{4})/;
+  my ($low, $high) = (hex($1), hex($2));
+  #
+  # Okay... Are these REALLY surrogate pairs ?
+  #
+  if (($high >= 0xDC00) && ($high <= 0xDFFF) &&
+      ($low >= 0xDC00) && ($low <= 0xDFFF)) {
+    print STDERR "===> HIGH $1 LOW $2\n";
+    return chr((($low - 0xD800) * 0x400) + $high - 0xDC00 + 0x10000 )
+  } else {
+    return chr(hex($low)) . chr(hex($high))
+  }
+}
+
 =head3 hex2codepoint_character($self)
 
 Action for rule C<char ::= '\\' 'u' /[[:xdigit:]]{4}/>.
