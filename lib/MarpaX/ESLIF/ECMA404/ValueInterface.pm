@@ -105,11 +105,13 @@ sub setResult { $_[0]->[0] = $_[1] }
 
 =head3 empty_string
 
-Action for rule C<chars ::=>.
+Action for rule C<chars ::=>
 
 =cut
 
-sub empty_string            { ''               } # chars ::=
+sub empty_string {
+  ''
+}
 
 =head3 unicode
 
@@ -136,12 +138,23 @@ sub unicode {
       # Okay... Are these REALLY surrogate pairs ?
       #
       if (($high >= 0xD800) && ($high <= 0xDBFF) && ($low >= 0xDC00) && ($low <= 0xDFFF)) {
+        #
+        # Yes
+        #
         $result .= chr((($high - 0xD800) * 0x400) + ($low - 0xDC00 + 0x10000));
-        splice(@hex, 0, 2);
-        next
+        splice(@hex, 0, 2)
+      } else {
+        #
+        # No
+        #
+        $result .= chr(shift @hex)
       }
+    } else {
+      #
+      # A single \u in the sequence -;
+      #
+      $result .= chr(shift @hex)
     }
-    $result .= chr(shift @hex)
   }
 
   $result
