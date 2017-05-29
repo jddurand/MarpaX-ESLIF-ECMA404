@@ -28,7 +28,7 @@ This module decodes strict JSON input using L<MarpaX::ESLIF>.
 =cut
 
 use Carp qw/croak/;
-use MarpaX::ESLIF 2.0.9;   # :discard[on] and :discard[off] handling in parse() method start here
+use MarpaX::ESLIF 2.0.12;   # String literal, hide-separator features
 use MarpaX::ESLIF::ECMA404::RecognizerInterface;
 use MarpaX::ESLIF::ECMA404::ValueInterface;
 
@@ -106,17 +106,17 @@ __DATA__
 # JSON Grammar as per ECMA-404
 # I explicitely expose string grammar for one reason: inner string elements have specific actions
 # ----------------------------
-object   ::= '{' members '}'         action => ::copy[1] # Returns ${members}
-members  ::= pairs* separator => ',' action => members   # Returns a hash reference of all @{$pairs} (separator have to be skipped)
-pairs    ::= string ':' value        action => pairs     # Returns an array reference [ $string, $value ]
-array    ::= '[' elements ']'        action => ::copy[1] # Returns ${elements}
-elements ::= value* separator => ',' action => array_ref # Returns an array reference [ @{$value} ] (separator have to be skipped)
-value    ::= string
-           | number
-           | object
-           | array
-           | 'true'                  action => perl_true  # Returns a perl true value
-           | 'false'                 action => perl_false # Returns a perl false value
+object   ::= '{' members '}'                                   action => ::copy[1]                     # Returns members
+members  ::= pairs* separator => ','       hide-separator => 1 action => members                       # Returns { @{pairs1}, ..., @{pair2} }
+pairs    ::= string ':' value                                  action => ::skip(1)->::[]               # Returns [ string, value ]
+array    ::= '[' elements ']'                                  action => ::copy[1]                     # Returns elements
+elements ::= value* separator => ','       hide-separator => 1 action => ::[]                          # Returns [ value1, ..., valuen ]
+value    ::= string                                                                                    # ::shift (default action)
+           | number                                                                                    # ::shift (default action)
+           | object                                                                                    # ::shift (default action)
+           | array                                                                                     # ::shift (default action)
+           | 'true'                                            action => ::true                        # Returns a perl true value
+           | 'false'                                           action => ::false                       # Returns a perl false value
            | 'null'
 
 # -------------------------
@@ -129,33 +129,32 @@ value    ::= string
 # -----------
 # Executed in the top grammar and not as a lexeme. This is why we shutdown temporarily :discard in it
 #
-string     ::= '"' discardOff chars '"' discardOn    action => ::copy[2]               # Only chars is of interest
-discardOff ::=                                                                         # Nullable rule used to disable discard
-discardOn  ::=                                                                         # Nullable rule used to enable discard
+string     ::= '"' discardOff chars '"' discardOn              action => ::copy[2]               # Only chars is of interest
+discardOff ::=                                                 action => ::undef                 # Nullable rule used to disable discard
+discardOn  ::=                                                 action => ::undef                 # Nullable rule used to enable discard
 
-event :discard[on]  = nulled discardOn                                                 # Implementation of discard disabing with reserved ':discard[on]' keyword
-event :discard[off] = nulled discardOff                                                # Implementation of discard enabling with reserved ':discard[off]' keyword
+event :discard[on]  = nulled discardOn                                                           # Implementation of discard disabing using reserved ':discard[on]' keyword
+event :discard[off] = nulled discardOff                                                          # Implementation of discard enabling using reserved ':discard[off]' keyword
 
-# Default action is ::concat, that will return undef if there is nothing, so we concat ourself to handle this case
-chars   ::= filled                                                                     # Returns ${filled}
-filled  ::= char+                                    action => ::concat                # Returns join('', @{$char})
-chars   ::=                                          action => empty_string            # Prefering empty string instead of undef
-char    ::= [^"\\[:cntrl:]]                                                            # Returns matched data
-          | '\\' '"'                                 action => ::copy[1]               # Returns double quote
-          | '\\' '\\'                                action => ::copy[1]               # Returns backslash
-          | '\\' '/'                                 action => ::copy[1]               # Returns slash
-          | '\\' 'b'                                 action => backspace_character     # Returns perl's vision of \b
-          | '\\' 'f'                                 action => formfeed_character      # Returns perl's vision of \f
-          | '\\' 'n'                                 action => newline_character       # Returns perl's vision of \n
-          | '\\' 'r'                                 action => return_character        # Returns perl's vision of \r
-          | '\\' 't'                                 action => tabulation_character    # Returns perl's vision of \t
-          | '\\' 'u' /[[:xdigit:]]{4}/               action => hex2codepoint_character # Returns perl's vision of \u
+chars   ::= filled                                                                               # ::shift (default action)
+filled  ::= char+                                              action => ::concat                # Returns join('', char1, ..., charn)
+chars   ::=                                                    action => empty_string            # Prefering empty string instead of undef
+char    ::= [^"\\[:cntrl:]]                                                                      # ::shift (default action)
+          | '\\' '"'                                           action => ::copy[1]               # Returns double quote, already ok in data
+          | '\\' '\\'                                          action => ::copy[1]               # Returns backslash, already ok in data
+          | '\\' '/'                                           action => ::copy[1]               # Returns slash, already ok in data
+          | '\\' 'b'                                           action => ::u8"\x{08}"
+          | '\\' 'f'                                           action => ::u8"\x{0C}"
+          | '\\' 'n'                                           action => ::u8"\x{0A}"
+          | '\\' 'r'                                           action => ::u8"\x{0D}"
+          | '\\' 't'                                           action => ::u8"\x{09}"
+          | '\\' 'u' /[[:xdigit:]]{4}/                         action => hex2codepoint_character # Returns perl's vision of \u
 
 # -------------------------------------------------------------------------------------------------------------
 # JSON number: defined as a single terminal: ECMA404 numbers can be are 100% compliant with perl numbers syntax
 # -------------------------------------------------------------------------------------------------------------
 #
-number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?/
+number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?/                  # ::shift (default action)
 
 # Original BNF for number follows
 #

@@ -21,12 +21,6 @@ MarpaX::ESLIF::ECMA404's Value Interface
 
 =cut
 
-my $_BACKSPACE = chr(0x0008);
-my $_FORMFEED  = chr(0x000C);
-my $_NEWLINE   = chr(0x000A);
-my $_RETURN    = chr(0x000D);
-my $_TAB       = chr(0x0009);
-
 # -----------
 # Constructor
 # -----------
@@ -133,109 +127,17 @@ Action for rule C<cpairs ::= string ':' value>.
 
 sub pairs                   { [ $_[1], $_[3] ] } # pairs ::= string ':' value
 
-=head3 backspace_character($self)
-
-Action for rule C<char ::= '\\' 'b'>.
-
-=cut
-
-sub backspace_character     { $_BACKSPACE      } # char  ::= '\\' 'b'
-
-=head3 formfeed_character($self)
-
-Action for rule C<char ::= '\\' 'f'>.
-
-=cut
-
-sub formfeed_character      { $_FORMFEED       } # char  ::= '\\' 'f'
-
-=head3 newline_character($self)
-
-Action for rule C<char ::= '\\' 'n'>.
-
-=cut
-
-sub newline_character       { $_NEWLINE        } # char  ::= '\\' 'n'
-
-=head3 return_character($self)
-
-Action for rule C<char ::= '\\' 'r'>.
-
-=cut
-
-sub return_character        { $_RETURN         } # char  ::= '\\' 'r'
-
-=head3 tabulation_character($self)
-
-Action for rule C<char ::= '\\' 't'>.
-
-=cut
-
-sub tabulation_character    { $_TAB            } # char  ::= '\\' 't'
-#
-# Methods that need some hacking -;
-#
-# Separator is PART of the arguments i.e.:
-# ($self, $value1, $separator, $value2, $separator, etc...)
-#
-# C.f. http://www.perlmonks.org/?node_id=566543 for explanation of the method
-#
-
-=head3 array_ref($self)
-
-Action for rule C<elements ::= value* separator => ','>.
-
-=cut
-
-sub array_ref {                                 # elements ::= value*
-    #
-    # elements ::= value+ separator => ','
-    #
-    # i.e. arguments are: ($self, $value1, $separator, $value2, $separator, etc..., $valuen)
-    # Where value is always a token
-    #
-    [ map { $_[$_*2+1] } 0..int(@_/2)-1 ]
-}
-
 =head3 members($self)
 
-Action for rule C<members  ::= pairs* separator => ','>.
+Action for rule C<members  ::= pairs* separator => ','> hide-separator => 1
 
 =cut
 
 sub members {                                   # members  ::= pairs*
     #
-    # members  ::= pairs+ separator => ','
+    # Arguments are: ($self, $pair1, $pair2, etc..., $pairn)
     #
-    # i.e. arguments are: ($self, $pair1, $separator, $pair2, $separator, etc..., $pairn)
-    #
-    my %hash;
-    # Where pairs is always an array ref [string,value]
-    #
-    foreach (map { $_[$_*2+1] } 0..int(@_/2)-1) {
-        $hash{$_->[0]} = $_->[1]
-    }
-    \%hash
-}
-
-=head3 perl_true($self)
-
-Retursn a perl true value.
-
-=cut
-
-sub perl_true {
-    return 1
-}
-
-=head3 perl_false($self)
-
-Retursn a perl false value.
-
-=cut
-
-sub perl_false {
-    return 0
+    shift, +{ map { @{$_} } @_ }
 }
 
 =head1 SEE ALSO
