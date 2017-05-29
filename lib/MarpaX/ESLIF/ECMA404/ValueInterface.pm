@@ -129,29 +129,26 @@ sub unicode {
 
   my $result;
   while (@hex) {
-    #
-    # Surrogate pair ?
-    #
     if ($#hex > 0) {
       my ($high, $low) = @hex;
       #
-      # Okay... Are these REALLY surrogate pairs ?
+      # An UTF-16 surrogate pair ?
       #
       if (($high >= 0xD800) && ($high <= 0xDBFF) && ($low >= 0xDC00) && ($low <= 0xDFFF)) {
         #
-        # Yes
+        # Yes.
         #
-        $result .= chr((($high - 0xD800) * 0x400) + ($low - 0xDC00 + 0x10000));
+        $result .= chr((($high - 0xD800) * 0x400) + ($low - 0xDC00) + 0x10000);
         splice(@hex, 0, 2)
       } else {
         #
-        # No
+        # No. Take first \uhhhh as a code point.
         #
         $result .= chr(shift @hex)
       }
     } else {
       #
-      # A single \u in the sequence -;
+      # \uhhhh taken as a code point.
       #
       $result .= chr(shift @hex)
     }
