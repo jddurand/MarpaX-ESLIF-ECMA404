@@ -129,7 +129,6 @@ sub surrogatepair_character_maybe {
   #
   if (($high >= 0xDC00) && ($high <= 0xDFFF) &&
       ($low >= 0xDC00) && ($low <= 0xDFFF)) {
-    print STDERR "===> HIGH $1 LOW $2\n";
     return chr((($low - 0xD800) * 0x400) + $high - 0xDC00 + 0x10000 )
   } else {
     return chr(hex($low)) . chr(hex($high))
