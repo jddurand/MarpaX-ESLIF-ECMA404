@@ -5,6 +5,8 @@ package MarpaX::ESLIF::ECMA404::ValueInterface;
 use Math::BigInt;
 use Math::BigFloat;
 
+our $FFFD = chr(0xFFFD);
+
 # ABSTRACT: MarpaX::ESLIF::ECMA404 Value Interface
 
 # VERSION
@@ -144,15 +146,17 @@ sub unicode {
         splice(@hex, 0, 2)
       } else {
         #
-        # No. Take first \uhhhh as a code point.
+        # No. Take first \uhhhh as a code point. Fallback to replacement character 0xFFFD if invalid.
+        # Eval returns undef in scalar context if there is a failure.
         #
-        $result .= chr(shift @hex)
+        $result .= eval {chr(shift @hex) } // $FFFD
       }
     } else {
       #
-      # \uhhhh taken as a code point.
+      # \uhhhh taken as a code point. Fallback to replacement character 0xFFFD if invalid.
+      # Eval returns undef in scalar context if there is a failure.
       #
-      $result .= chr(shift @hex)
+      $result .= eval {chr(shift @hex) } // $FFFD
     }
   }
 
