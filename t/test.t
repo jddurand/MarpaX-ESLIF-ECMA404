@@ -24,10 +24,11 @@ Log::Any::Adapter->set('Log4perl');
 
 BEGIN { require_ok('MarpaX::ESLIF::ECMA404') };
 
-my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger => $log,
-                                          unlimited_commas => 1,
-                                          perl_comment => 1,
-                                          cplusplus_comment => 1);
+my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger            => $log,
+                                          unlimited_commas  => 1,
+                                          perl_comment      => 1,
+                                          cplusplus_comment => 1,
+                                          max_depth         => 100);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
 foreach (sort __PACKAGE__->section_data_names) {
@@ -37,7 +38,6 @@ foreach (sort __PACKAGE__->section_data_names) {
     # Just in case __DATA__ sections would not start with ok or ko -;
     #
     next unless $want_ok || $want_ko;
-    next unless $_ =~ /comment\.json/;
     #
     # Test data
     #
@@ -1757,5 +1757,11 @@ __[ ok / from http://seriot.ch/parsing_json.php - y_string_comments.json ]__
 ["a/*b*/c/*d//e"]
 __[ ok / from http://seriot.ch/parsing_json.php - n_object_trailing_comment.json ]__
 {"a":"b"}/**/
-__[ ok / from http://seriot.ch/parsing_json.php - n_object_trailing_comment.json - variation ]__
-{"a": /* Comment */ "b"}
+__[ ok / from http://seriot.ch/parsing_json.php - n_structure_object_with_comment.json ]__
+{"a":/*comment*/"b"}
+__[ ko / from http://seriot.ch/parsing_json.php - n_structure_object_unclosed_no_value.json ]__
+{"":
+__[ ko / from http://seriot.ch/parsing_json.php - n_structure_object_followed_by_closing_object.json ]__
+{}}
+__[ ok / from http://seriot.ch/parsing_json.php - Nested Structures ]__
+[[[[[]]]]]

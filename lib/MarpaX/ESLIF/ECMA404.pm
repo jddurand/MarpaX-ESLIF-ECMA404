@@ -31,6 +31,7 @@ use Carp qw/croak/;
 use MarpaX::ESLIF 2.0.12;   # String literal, hide-separator features
 use MarpaX::ESLIF::ECMA404::RecognizerInterface;
 use MarpaX::ESLIF::ECMA404::ValueInterface;
+use Scalar::Util qw/looks_like_number/;
 
 our $_BNF    = do { local $/; <DATA> };
 
@@ -55,7 +56,7 @@ sub new {
 
     my $bnf = $_BNF;
     if ($options{unlimited_commas}) {
-        $bnf =~ s/separator => comma/separator => commas/g;
+        $bnf =~ s/separator => COMMA/separator => commas/g;
         $bnf =~ s/proper => 1/proper => 0/g;
     }
     if ($options{perl_comment}) {
@@ -67,7 +68,21 @@ sub new {
         $bnf =~ s/$tag//;
     }
 
-    bless \MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($options{logger}), $bnf), $pkg
+    #
+    # Check that max_depth looks like a number
+    #
+    my $max_depth = $options{max_depth} //= 0;
+    croak "max_depth option does not look like a number" unless looks_like_number $max_depth;
+    #
+    # And that it is an integer
+    #
+    $max_depth =~ s/\s//g;
+    croak "max_depth option does not look an integer >= 0" unless $max_depth =~  /^\+?\d+/;
+    $options{max_depth} = int($max_depth);
+    bless {
+           grammar => MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($options{logger}), $bnf),
+           %options
+          }, $pkg
 }
 
 =head2 decode($self, $input)
@@ -92,12 +107,50 @@ sub decode {
   # ---------------
   # Parse the input
   # ---------------
-  return unless ${$self}->parse($recognizerInterface, $valueInterface);
+  my $max_depth = $self->{max_depth};
+  if ($max_depth) {
+    $self->{cur_depth} = 0;
+    #
+    # Use the rcognizer loop to check max_depth on object recursion
+    #
+    my $eslifRecognizer = MarpaX::ESLIF::Recognizer->new($self->{grammar}, $recognizerInterface);
+    return unless eval {
+      $eslifRecognizer->scan() || die "scan() failed";
+      $self->_manage_events($eslifRecognizer);
+      if ($eslifRecognizer->isCanContinue) {
+        do {
+          $eslifRecognizer->resume || die "resume() failed";
+          $self->_manage_events($eslifRecognizer)
+        } while ($eslifRecognizer->isCanContinue)
+      }
+      #
+      # We configured value interface to not accept ambiguity not null parse.
+      # So no need to loop on value()
+      #
+      MarpaX::ESLIF::Value->new($eslifRecognizer, $valueInterface)->value()
+    }
+  } else {
+    return unless $self->{grammar}->parse($recognizerInterface, $valueInterface)
+  }
 
   # ------------------------
   # Return the value
   # ------------------------
   $valueInterface->getResult
+}
+
+sub _manage_events {
+  my ($self, $eslifRecognizer) = @_;
+
+  foreach (@{$eslifRecognizer->events()}) {
+    my $event = $_->{event};
+    next unless $event;  # Can be undef for exhaustion
+    if ($event eq 'inc_depth') {
+      croak "Maximum depth $self->{max_depth} reached" if ++$self->{cur_depth} > $self->{max_depth}
+    } elsif ($event eq 'dec_depth') {
+       --$self->{cur_depth}
+     }
+  }
 }
 
 =head1 SEE ALSO
@@ -121,11 +174,11 @@ __DATA__
 # JSON Grammar as per ECMA-404
 # I explicitely expose string grammar for one reason: inner string elements have specific actions
 # ----------------------------
-object   ::= '{' members '}'                                   action => ::copy[1]                     # Returns members
-members  ::= pairs* separator => comma     hide-separator => 1 action => members proper => 1           # Returns { @{pairs1}, ..., @{pair2} }
+object   ::= OBJ_START members OBJ_END                         action => ::copy[1]                     # Returns members
+members  ::= pairs* separator => COMMA     hide-separator => 1 action => members proper => 1           # Returns { @{pairs1}, ..., @{pair2} }
 pairs    ::= string ':' value                                  action => ::skip(1)->::[]               # Returns [ string, value ]
-array    ::= '[' elements ']'                                  action => ::copy[1]                     # Returns elements
-elements ::= value* separator => comma     hide-separator => 1 action => ::[] proper => 1              # Returns [ value1, ..., valuen ]
+array    ::= ARRAY_START elements ARRAY_END                    action => ::copy[1]                     # Returns elements
+elements ::= value* separator => COMMA     hide-separator => 1 action => ::[] proper => 1              # Returns [ value1, ..., valuen ]
 value    ::= string                                                                                    # ::shift (default action)
            | number                                                                                    # ::shift (default action)
            | object                                                                                    # ::shift (default action)
@@ -134,8 +187,18 @@ value    ::= string                                                             
            | 'false'                                           action => ::false                       # Returns a perl false value
            | 'null'
 
-comma    ::= ','
-commas   ::= comma+
+COMMA      ~ ','
+commas   ::= COMMA+
+
+:lexeme  ::= OBJ_START   pause => after event => inc_depth
+:lexeme  ::= ARRAY_START pause => after event => inc_depth
+OBJ_START   ~ '{'
+ARRAY_START ~ '['
+
+:lexeme  ::= OBJ_END   pause => after event => dec_depth
+:lexeme  ::= ARRAY_END pause => after event => dec_depth
+OBJ_END    ~ '}'
+ARRAY_END  ~ ']'
 
 # -------------------------
 # Unsignificant whitespaces
@@ -147,6 +210,15 @@ commas   ::= comma+
 # ------------------
 # /* Perl comment */:discard ::= /(?:(?:#)(?:[^\n]*)(?:\n|\z))/u
 # /* C++ comment */:discard ::= /(?:(?:(?:\/\/)(?:[^\n]*)(?:\n|\z))|(?:(?:\/\*)(?:(?:[^\*]+|\*(?!\/))*)(?:\*\/)))/
+
+# ---------------
+# Depth extension
+# ---------------
+inc_depth ::=
+dec_depth ::=
+
+event inc_depth[] = nulled inc_depth                                                             # Increment depth
+event dec_depth[] = nulled dec_depth                                                             # Decrement depth
 
 # -----------
 # JSON string
