@@ -2,6 +2,8 @@ use strict;
 use warnings FATAL => 'all';
 
 package MarpaX::ESLIF::ECMA404::ValueInterface;
+use Math::BigInt;
+use Math::BigFloat;
 
 # ABSTRACT: MarpaX::ESLIF::ECMA404 Value Interface
 
@@ -163,11 +165,55 @@ Action for rule C<members  ::= pairs* separator => ','> hide-separator => 1
 
 =cut
 
-sub members {                                   # members  ::= pairs*
+sub members {
     #
     # Arguments are: ($self, $pair1, $pair2, etc..., $pairn)
     #
     shift, +{ map { @{$_} } @_ }
+}
+
+=head3 bignum
+
+Action for rules C<number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]+)?/>
+
+=cut
+
+sub number {
+  my ($self, $number) = @_;
+  #
+  # We are sure this is a float if there is the dot '.' or the exponent [eE]
+  #
+  ($number =~ /[\.eE]/) ? Math::BigFloat->new($number) : Math::BigInt->new($number)
+}
+
+=head3 nan
+
+Action for rules C<number ::= '-' 'NaN'> and C<number ::= 'NaN'>
+
+=cut
+
+sub nan {
+    Math::BigInt->bnan()
+}
+
+=head3 negative_infinity
+
+Action for rules C<number ::= '-' 'Infinity'>
+
+=cut
+
+sub negative_infinity {
+    Math::BigInt->binf('-')
+}
+
+=head3 positive_infinity
+
+Action for rules C<number ::= 'Infinity'>
+
+=cut
+
+sub positive_infinity {
+    Math::BigInt->binf()
 }
 
 =head1 SEE ALSO

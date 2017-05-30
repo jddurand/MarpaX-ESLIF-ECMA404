@@ -61,11 +61,15 @@ sub new {
     }
     if ($options{perl_comment}) {
         my $tag = quotemeta('# /* Perl comment */');
-        $bnf =~ s/$tag//;
+        $bnf =~ s/$tag//g;
     }
     if ($options{cplusplus_comment}) {
         my $tag = quotemeta('# /* C++ comment */');
-        $bnf =~ s/$tag//;
+        $bnf =~ s/$tag//g;
+    }
+    if ($options{bignum}) {
+        my $tag = quotemeta('# /* bignum */');
+        $bnf =~ s/$tag//g;
     }
 
     #
@@ -250,8 +254,12 @@ char    ::= [^"\\[:cntrl:]]                                                     
 # JSON number: defined as a single terminal: ECMA404 numbers can be are 100% compliant with perl numbers syntax
 # -------------------------------------------------------------------------------------------------------------
 #
-number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]*)?/                  # ::shift (default action)
-
+number ::= /\-?(?:(?:[1-9]?[0-9]+)|[0-9])(?:\.[0-9]+)?(?:[eE](?:[+-])?[0-9]+)?/
+# /* bignum */                                                 action => number
+# /* bignum */number ::= '-' 'NaN'                             action => nan
+# /* bignum */number ::=     'NaN'                             action => nan
+# /* bignum */number ::= '-' 'Infinity'                        action => negative_infinity
+# /* bignum */number ::=     'Infinity'                        action => positive_infinity
 # Original BNF for number follows
 #
 #number    ~ int

@@ -28,7 +28,8 @@ my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger            => $log,
                                           unlimited_commas  => 1,
                                           perl_comment      => 1,
                                           cplusplus_comment => 1,
-                                          max_depth         => 100);
+                                          max_depth         => 100,
+                                          bignum            => 1);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
 foreach (sort __PACKAGE__->section_data_names) {
@@ -1765,3 +1766,38 @@ __[ ko / from http://seriot.ch/parsing_json.php - n_structure_object_followed_by
 {}}
 __[ ok / from http://seriot.ch/parsing_json.php - Nested Structures ]__
 [[[[[]]]]]
+__[ ko / from http://seriot.ch/parsing_json.php - n_structure_whitespace_formfeed.json ]__
+[]
+__[ ko / from http://seriot.ch/parsing_json.php - n_structure_whitespace_U+2060_word_joiner.json ]__
+[⁠]
+__[ ko / from http://seriot.ch/parsing_json.php - n_structure_no_data.json ]__
+__[ ok / from http://seriot.ch/parsing_json.php - n_number_NaN.json ]__
+[NaN]
+__[ ok / from http://seriot.ch/parsing_json.php - n_number_minus_infinity.json ]__
+[-Infinity]
+__[ ko / from http://seriot.ch/parsing_json.php - n_number_hex_2_digits.json ]__
+[0x42]
+__[ ok / from http://seriot.ch/parsing_json.php - i_number_very_big_negative_int.json ]__
+[-237462374673276894279832]
+__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json ]__
+[0E+]
+__[ ok / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - v1 ]__
+[0E0]
+__[ ok / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - v1 ]__
+[0e+1]
+__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - invalid ]__
+[1.0E+]
+__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - invalid v2 ]__
+[0E]
+__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - invalid v3 ]__
+[1eE2]
+__[ ko / from http://seriot.ch/parsing_json.php - n_number_.2e-3.json ]__
+[.2e-3]
+__[ ok / from http://seriot.ch/parsing_json.php - y_number_double_huge_neg_exp.json ]__
+[123.456e-789]
+__[ ko / from http://seriot.ch/parsing_json.php - n_array_comma_and_number.json ]__
+[,1]
+__[ ko / from http://seriot.ch/parsing_json.php - n_array_colon_instead_of_comma.json ]__
+["": 1]
+__[ ko / from http://seriot.ch/parsing_json.php - n_array_unclosed_with_new_lines.json ]__
+[1, 1 ,1
