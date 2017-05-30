@@ -24,7 +24,10 @@ Log::Any::Adapter->set('Log4perl');
 
 BEGIN { require_ok('MarpaX::ESLIF::ECMA404') };
 
-my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger => $log);
+my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger => $log,
+                                          unlimited_commas => 1,
+                                          perl_comment => 1,
+                                          cplusplus_comment => 1);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
 foreach (sort __PACKAGE__->section_data_names) {
@@ -34,6 +37,7 @@ foreach (sort __PACKAGE__->section_data_names) {
     # Just in case __DATA__ sections would not start with ok or ko -;
     #
     next unless $want_ok || $want_ko;
+    next unless $_ =~ /comment\.json/;
     #
     # Test data
     #
@@ -43,6 +47,8 @@ foreach (sort __PACKAGE__->section_data_names) {
         # use JSON::XS ();
         # is_deeply($ecma404->decode($$input), JSON::XS::decode_json($$input), $_);
         ok($ecma404->decode($$input), $_);
+        #use Data::Dumper;
+        #print STDERR Dumper($ecma404->decode($$input));
     } else {
         ok(!$ecma404->decode($$input), $_);
     }
@@ -1739,3 +1745,17 @@ __[ ko / from http://php.net/manual/fr/function.json-decode.php / invalid exampl
 { bar: "baz", }
 __[ ko / from http://ryanmarcus.github.io/dirty-json/ ]__
 { "key": "<div class="coolCSS">some text</div>" }
+__[ ok / from http://seriot.ch/parsing_json.php - y_structure_lonely_string.json ]__
+"asd"
+__[ ok / from http://seriot.ch/parsing_json.php - n_object_trailing_comma.json ]__
+{"id":0,}
+__[ ok / from http://seriot.ch/parsing_json.php - n_object_several_trailing_commas.json ]__
+{"id":0,,,,,}
+__[ ok / from http://seriot.ch/parsing_json.php - n_object_several_trailing_commas.json - variation ]__
+{"id":0,,,"id":0,,}
+__[ ok / from http://seriot.ch/parsing_json.php - y_string_comments.json ]__
+["a/*b*/c/*d//e"]
+__[ ok / from http://seriot.ch/parsing_json.php - n_object_trailing_comment.json ]__
+{"a":"b"}/**/
+__[ ok / from http://seriot.ch/parsing_json.php - n_object_trailing_comment.json - variation ]__
+{"a": /* Comment */ "b"}

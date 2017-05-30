@@ -51,8 +51,23 @@ An optional logger object instance that must do methods compliant with L<Log::An
 =cut
 
 sub new {
-  my ($pkg, %options) = @_;
-  bless \MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($options{logger}), $_BNF), $pkg
+    my ($pkg, %options) = @_;
+
+    my $bnf = $_BNF;
+    if ($options{unlimited_commas}) {
+        $bnf =~ s/separator => comma/separator => commas/g;
+        $bnf =~ s/proper => 1/proper => 0/g;
+    }
+    if ($options{perl_comment}) {
+        my $tag = quotemeta('# /* Perl comment */');
+        $bnf =~ s/$tag//;
+    }
+    if ($options{cplusplus_comment}) {
+        my $tag = quotemeta('# /* C++ comment */');
+        $bnf =~ s/$tag//;
+    }
+
+    bless \MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($options{logger}), $bnf), $pkg
 }
 
 =head2 decode($self, $input)
@@ -107,10 +122,10 @@ __DATA__
 # I explicitely expose string grammar for one reason: inner string elements have specific actions
 # ----------------------------
 object   ::= '{' members '}'                                   action => ::copy[1]                     # Returns members
-members  ::= pairs* separator => ','       hide-separator => 1 action => members                       # Returns { @{pairs1}, ..., @{pair2} }
+members  ::= pairs* separator => comma     hide-separator => 1 action => members proper => 1           # Returns { @{pairs1}, ..., @{pair2} }
 pairs    ::= string ':' value                                  action => ::skip(1)->::[]               # Returns [ string, value ]
 array    ::= '[' elements ']'                                  action => ::copy[1]                     # Returns elements
-elements ::= value* separator => ','       hide-separator => 1 action => ::[]                          # Returns [ value1, ..., valuen ]
+elements ::= value* separator => comma     hide-separator => 1 action => ::[] proper => 1              # Returns [ value1, ..., valuen ]
 value    ::= string                                                                                    # ::shift (default action)
            | number                                                                                    # ::shift (default action)
            | object                                                                                    # ::shift (default action)
@@ -119,10 +134,19 @@ value    ::= string                                                             
            | 'false'                                           action => ::false                       # Returns a perl false value
            | 'null'
 
+comma    ::= ','
+commas   ::= comma+
+
 # -------------------------
 # Unsignificant whitespaces
 # -------------------------
 :discard ::= /[\x{9}\x{A}\x{D}\x{20}]*/
+
+# ------------------
+# Comment extensions
+# ------------------
+# /* Perl comment */:discard ::= /(?:(?:#)(?:[^\n]*)(?:\n|\z))/u
+# /* C++ comment */:discard ::= /(?:(?:(?:\/\/)(?:[^\n]*)(?:\n|\z))|(?:(?:\/\*)(?:(?:[^\*]+|\*(?!\/))*)(?:\*\/)))/
 
 # -----------
 # JSON string
