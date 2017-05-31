@@ -85,6 +85,10 @@ Support of C<nan>, case insensitive, eventually preceeded by a C<+> or a C<-> si
 
 Support of Unicode's control characters (i.e. the range C<[\x00-\x1F]>).
 
+=item disallow_dupkeys
+
+Dot not allow duplicate key in an object.
+
 =back
 
 =cut
