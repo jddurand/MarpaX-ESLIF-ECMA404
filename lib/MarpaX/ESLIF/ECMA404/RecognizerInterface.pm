@@ -35,8 +35,8 @@ Instantiate a new recognizer interface object. Argument is the data, following e
 =cut
 
 sub new {
-    my ($pkg, $input, $encoding) = @_;
-    bless { data => $input, encoding => $encoding }, $pkg
+    my ($pkg, %options) = @_;
+    bless \%options, $pkg
 }
 
 # ----------------
