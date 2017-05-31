@@ -87,6 +87,10 @@ sub new {
         my $tag = quotemeta('# /* cntrl */');
         $bnf =~ s/$tag//g;
     }
+    if ($options{del_character}) {
+        my $tag = quotemeta('# /* del */');
+        $bnf =~ s/$tag//g;
+    }
     #
     # Check that max_depth looks like a number
     #
@@ -337,5 +341,10 @@ dec ::=                                                        action => ::undef
 # -----------------
 # Control character
 # -----------------
-# /* cntrl */char      ::= [[:cntrl:]]                                                            # ::shift (default action)
+# /* cntrl */char      ::= /[\x00-\x1F]/                                                          # Because [:cntrl:] includes DEL (x7F)
+
+# -----------------
+# Del character
+# -----------------
+# /* del */char      ::= /\x7F/                                                                   # ::shift (default action)
 
