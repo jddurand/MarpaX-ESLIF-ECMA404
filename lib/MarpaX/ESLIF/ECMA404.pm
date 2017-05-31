@@ -56,7 +56,7 @@ sub new {
 
     my $bnf = $_BNF;
     if ($options{unlimited_commas}) {
-        $bnf =~ s/separator => COMMA/separator => commas/g;
+        $bnf =~ s/separator => comma/separator => commas/g;
         $bnf =~ s/proper => 1/proper => 0/g;
     }
     if ($options{perl_comment}) {
@@ -71,7 +71,6 @@ sub new {
         my $tag = quotemeta('# /* bignum */');
         $bnf =~ s/$tag//g;
     }
-
     #
     # Check that max_depth looks like a number
     #
@@ -83,6 +82,11 @@ sub new {
     $max_depth =~ s/\s//g;
     croak "max_depth option does not look an integer >= 0" unless $max_depth =~  /^\+?\d+/;
     $options{max_depth} = int($max_depth);
+    if ($options{max_depth}) {
+        my $tag = quotemeta('# /* max_depth */');
+        $bnf =~ s/$tag//g;
+    }
+
     bless {
            grammar => MarpaX::ESLIF::Grammar->new(MarpaX::ESLIF->new($options{logger}), $bnf),
            %options
@@ -106,7 +110,7 @@ sub decode {
   # -----------------------------
   # Instanciate a value interface
   # -----------------------------
-  my $valueInterface = MarpaX::ESLIF::ECMA404::ValueInterface->new();
+  my $valueInterface = MarpaX::ESLIF::ECMA404::ValueInterface->new($self->{logger});
 
   # ---------------
   # Parse the input
@@ -115,7 +119,7 @@ sub decode {
   if ($max_depth) {
     $self->{cur_depth} = 0;
     #
-    # Use the rcognizer loop to check max_depth on object recursion
+    # We need to use the recognizer loop to have access to the inc/dec events
     #
     my $eslifRecognizer = MarpaX::ESLIF::Recognizer->new($self->{grammar}, $recognizerInterface);
     return unless eval {
@@ -149,9 +153,9 @@ sub _manage_events {
   foreach (@{$eslifRecognizer->events()}) {
     my $event = $_->{event};
     next unless $event;  # Can be undef for exhaustion
-    if ($event eq 'inc_depth') {
+    if ($event eq 'inc[]') {
       croak "Maximum depth $self->{max_depth} reached" if ++$self->{cur_depth} > $self->{max_depth}
-    } elsif ($event eq 'dec_depth') {
+    } elsif ($event eq 'dec[]') {
        --$self->{cur_depth}
      }
   }
@@ -178,31 +182,21 @@ __DATA__
 # JSON Grammar as per ECMA-404
 # I explicitely expose string grammar for one reason: inner string elements have specific actions
 # ----------------------------
-object   ::= OBJ_START members OBJ_END                         action => ::copy[1]                     # Returns members
-members  ::= pairs* separator => COMMA     hide-separator => 1 action => members proper => 1           # Returns { @{pairs1}, ..., @{pair2} }
-pairs    ::= string ':' value                                  action => ::skip(1)->::[]               # Returns [ string, value ]
-array    ::= ARRAY_START elements ARRAY_END                    action => ::copy[1]                     # Returns elements
-elements ::= value* separator => COMMA     hide-separator => 1 action => ::[] proper => 1              # Returns [ value1, ..., valuen ]
+object   ::= '{' inc members '}' dec                                       action => ::copy[2]         # Returns members
+members  ::= pairs* separator => comma     proper => 1 hide-separator => 1 action => members           # Returns { @{pairs1}, ..., @{pair2} }
+pairs    ::= string ':' value                                              action => pairs             # Returns [ string, value ]
+array    ::= '[' inc elements ']' dec                                      action => ::copy[2]         # Returns elements
+elements ::= value* separator => comma     proper => 1 hide-separator => 1 action => elements          # Returns [ value1, ..., valuen ]
 value    ::= string                                                                                    # ::shift (default action)
            | number                                                                                    # ::shift (default action)
            | object                                                                                    # ::shift (default action)
            | array                                                                                     # ::shift (default action)
-           | 'true'                                            action => ::true                        # Returns a perl true value
-           | 'false'                                           action => ::false                       # Returns a perl false value
+           | 'true'                                                        action => true              # Returns a perl true value
+           | 'false'                                                       action => false             # Returns a perl false value
            | 'null'
 
-COMMA      ~ ','
-commas   ::= COMMA+
-
-:lexeme  ::= OBJ_START   pause => after event => inc_depth
-:lexeme  ::= ARRAY_START pause => after event => inc_depth
-OBJ_START   ~ '{'
-ARRAY_START ~ '['
-
-:lexeme  ::= OBJ_END   pause => after event => dec_depth
-:lexeme  ::= ARRAY_END pause => after event => dec_depth
-OBJ_END    ~ '}'
-ARRAY_END  ~ ']'
+comma    ::= ','
+commas   ::= comma+
 
 # -------------------------
 # Unsignificant whitespaces
@@ -218,11 +212,11 @@ ARRAY_END  ~ ']'
 # ---------------
 # Depth extension
 # ---------------
-inc_depth ::=
-dec_depth ::=
+inc ::=                                                        action => ::undef
+dec ::=                                                        action => ::undef
 
-event inc_depth[] = nulled inc_depth                                                             # Increment depth
-event dec_depth[] = nulled dec_depth                                                             # Decrement depth
+# /* max_depth */event inc[] = nulled inc                                                        # Increment depth
+# /* max_depth */event dec[] = nulled dec                                                        # Decrement depth
 
 # -----------
 # JSON string
@@ -254,25 +248,31 @@ char    ::= [^"\\[:cntrl:]]                                                     
 # JSON number: defined as a single terminal: ECMA404 numbers can be are 100% compliant with perl numbers syntax
 # -------------------------------------------------------------------------------------------------------------
 #
-number ::= /\-?(?:(?:[1-9]?[0-9]+)|[0-9])(?:\.[0-9]+)?(?:[eE](?:[+-])?[0-9]+)?/
-# /* bignum */                                                 action => number
-# /* bignum */number ::= '-' 'NaN'                             action => nan
-# /* bignum */number ::=     'NaN'                             action => nan
-# /* bignum */number ::= '-' 'Infinity'                        action => negative_infinity
-# /* bignum */number ::=     'Infinity'                        action => positive_infinity
+# number ::= /\-?(?:(?:[1-9]?[0-9]+)|[0-9])(?:\.[0-9]+)?(?:[eE](?:[+-])?[0-9]+)?/ # /* bignum */action => number
+number ::= NUMBER # /* bignum */action => number
+
+# /* bignum */number   ::= '-' nan                               action => nan
+# /* bignum */number   ::=     nan                               action => nan
+# /* bignum */number   ::= '+' nan                               action => nan
+# /* bignum */number   ::= '-' infinity                          action => negative_infinity
+# /* bignum */number   ::=     infinity                          action => positive_infinity
+# /* bignum */number   ::= '+' infinity                          action => positive_infinity
+# /* bignum */nan      ::= 'NaN'
+# /* bignum */infinity ::= 'Infinity' | 'Inf'
+
 # Original BNF for number follows
 #
-#number    ~ int
-#          | int frac
-#          | int exp
-#          | int frac exp
-#int       ~ digit
-#          | digit19 digits
-#          | '-' digit
-#          | '-' digit19 digits
-#digit     ~ [[:digit:]]
-#digit19   ~ [1-9]
-#frac      ~ '.' digits
-#exp       ~ e digits
-#digits    ~ digit*
-#e         ~ /e[+-]?/i
+NUMBER    ~ int
+          | int frac
+          | int exp
+          | int frac exp
+int       ~ digit
+          | digit19 digits
+          | '-' digit
+          | '-' digit19 digits
+digit     ~ [[:digit:]]
+digit19   ~ [1-9]
+frac      ~ '.' digits
+exp       ~ e digits
+digits    ~ digit+
+e         ~ /e[+-]?/i

@@ -2,6 +2,8 @@
 use strict;
 use warnings FATAL => 'all';
 use Data::Section 0.200006 -setup;
+use FindBin qw /$Bin/;
+use File::Spec;
 use Test::More;
 use Test::More::UTF8;
 use Log::Log4perl qw/:easy/;
@@ -43,19 +45,54 @@ foreach (sort __PACKAGE__->section_data_names) {
     # Test data
     #
     my $input = __PACKAGE__->section_data($_);
+    $@ = 'good!';
     if ($want_ok) {
         # Left commented to compare with a good and working parser -;
         # use JSON::XS ();
         # is_deeply($ecma404->decode($$input), JSON::XS::decode_json($$input), $_);
-        ok($ecma404->decode($$input), $_);
+        ok($ecma404->decode($$input), "$_ - $@");
         #use Data::Dumper;
         #print STDERR Dumper($ecma404->decode($$input));
     } else {
-        ok(!$ecma404->decode($$input), $_);
+        ok(!$ecma404->decode($$input), "$_ - $@");
     }
 }
 
+#
+# From https://github.com/nst/JSONTestSuite/tree/master/test_parsing
+#
+my $test_parsing_dir = File::Spec->catdir($Bin, 'test_parsing');
+opendir(my $d, $test_parsing_dir) || die "Failed to open $test_parsing_dir, $!";
+my @files = sort grep { /\.json$/ } readdir($d);
+closedir($d) || warn "Failed to close $test_parsing_dir, $!";
+foreach my $basename (@files) {
+    my $file_path = File::Spec->catfile($test_parsing_dir, $basename);
+
+    open(my $f, '<', $file_path) || die "Cannot open $file_path, $!";
+    binmode($f);
+    my $data = do { local $/; <$f> };
+    close($f) || warn "Failed to close $_, $!";
+
+    my $want_ok = ($basename =~ /^n/);
+    $@ = 'good!';
+    if ($want_ok) {
+        if (! ok(!$ecma404->decode($data), "$basename - $@")) {
+            use Data::Dumper;
+            print STDERR Dumper($data);
+        }
+    } else {
+        if (! ok($ecma404->decode($data), "$basename - $@")) {
+            use Data::Dumper;
+            print STDERR Dumper($data);
+        }
+    }
+}
+
+#
+# Done
+#
 done_testing();
+
 __DATA__
 __[ ok / from https://en.wikipedia.org/wiki/JSON#Data_portability_issues ]__
 { "face1": "😂", "face2": "\u849c\uD83D\uDE02\u849c\u8089" }
@@ -1746,58 +1783,3 @@ __[ ko / from http://php.net/manual/fr/function.json-decode.php / invalid exampl
 { bar: "baz", }
 __[ ko / from http://ryanmarcus.github.io/dirty-json/ ]__
 { "key": "<div class="coolCSS">some text</div>" }
-__[ ok / from http://seriot.ch/parsing_json.php - y_structure_lonely_string.json ]__
-"asd"
-__[ ok / from http://seriot.ch/parsing_json.php - n_object_trailing_comma.json ]__
-{"id":0,}
-__[ ok / from http://seriot.ch/parsing_json.php - n_object_several_trailing_commas.json ]__
-{"id":0,,,,,}
-__[ ok / from http://seriot.ch/parsing_json.php - n_object_several_trailing_commas.json - variation ]__
-{"id":0,,,"id":0,,}
-__[ ok / from http://seriot.ch/parsing_json.php - y_string_comments.json ]__
-["a/*b*/c/*d//e"]
-__[ ok / from http://seriot.ch/parsing_json.php - n_object_trailing_comment.json ]__
-{"a":"b"}/**/
-__[ ok / from http://seriot.ch/parsing_json.php - n_structure_object_with_comment.json ]__
-{"a":/*comment*/"b"}
-__[ ko / from http://seriot.ch/parsing_json.php - n_structure_object_unclosed_no_value.json ]__
-{"":
-__[ ko / from http://seriot.ch/parsing_json.php - n_structure_object_followed_by_closing_object.json ]__
-{}}
-__[ ok / from http://seriot.ch/parsing_json.php - Nested Structures ]__
-[[[[[]]]]]
-__[ ko / from http://seriot.ch/parsing_json.php - n_structure_whitespace_formfeed.json ]__
-[]
-__[ ko / from http://seriot.ch/parsing_json.php - n_structure_whitespace_U+2060_word_joiner.json ]__
-[⁠]
-__[ ko / from http://seriot.ch/parsing_json.php - n_structure_no_data.json ]__
-__[ ok / from http://seriot.ch/parsing_json.php - n_number_NaN.json ]__
-[NaN]
-__[ ok / from http://seriot.ch/parsing_json.php - n_number_minus_infinity.json ]__
-[-Infinity]
-__[ ko / from http://seriot.ch/parsing_json.php - n_number_hex_2_digits.json ]__
-[0x42]
-__[ ok / from http://seriot.ch/parsing_json.php - i_number_very_big_negative_int.json ]__
-[-237462374673276894279832]
-__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json ]__
-[0E+]
-__[ ok / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - v1 ]__
-[0E0]
-__[ ok / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - v1 ]__
-[0e+1]
-__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - invalid ]__
-[1.0E+]
-__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - invalid v2 ]__
-[0E]
-__[ ko / from http://seriot.ch/parsing_json.php - n_number_0_capital_E+.json - invalid v3 ]__
-[1eE2]
-__[ ko / from http://seriot.ch/parsing_json.php - n_number_.2e-3.json ]__
-[.2e-3]
-__[ ok / from http://seriot.ch/parsing_json.php - y_number_double_huge_neg_exp.json ]__
-[123.456e-789]
-__[ ko / from http://seriot.ch/parsing_json.php - n_array_comma_and_number.json ]__
-[,1]
-__[ ko / from http://seriot.ch/parsing_json.php - n_array_colon_instead_of_comma.json ]__
-["": 1]
-__[ ko / from http://seriot.ch/parsing_json.php - n_array_unclosed_with_new_lines.json ]__
-[1, 1 ,1

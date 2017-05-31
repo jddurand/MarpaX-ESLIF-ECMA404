@@ -37,7 +37,11 @@ Instantiate a new value interface object.
 
 =cut
 
-sub new                { bless [], $_[0] }
+sub new {
+    my ($pkg, $logger) = @_;
+
+    bless { result => undef, logger => $logger }, $pkg
+}
 
 # ----------------
 # Required methods
@@ -91,7 +95,7 @@ Returns the current parse tree value.
 
 =cut
 
-sub getResult { $_[0]->[0] }
+sub getResult { $_[0]->{result} }
 
 =head3 setResult
 
@@ -99,7 +103,7 @@ Sets the current parse tree value.
 
 =cut
 
-sub setResult { $_[0]->[0] = $_[1] }
+sub setResult { $_[0]->{result} = $_[1] }
 
 # ----------------
 # Specific actions
@@ -170,15 +174,22 @@ Action for rule C<members  ::= pairs* separator => ','> hide-separator => 1
 =cut
 
 sub members {
+    my ($self, @pairs) = @_;
     #
     # Arguments are: ($self, $pair1, $pair2, etc..., $pairn)
     #
-    shift, +{ map { @{$_} } @_ }
+    my %hash;
+    foreach (@pairs) {
+        my ($key, $value) = @{$_};
+        $self->{logger}->warnf('Duplicate key %s', $key) if exists $hash{$key};
+        $hash{$key} = $value
+    }
+    \%hash
 }
 
 =head3 bignum
 
-Action for rules C<number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]+)?/>
+Action for rule C<number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]+)?/>
 
 =cut
 
@@ -202,7 +213,7 @@ sub nan {
 
 =head3 negative_infinity
 
-Action for rules C<number ::= '-' 'Infinity'>
+Action for rule C<number ::= '-' 'Infinity'>
 
 =cut
 
@@ -212,12 +223,52 @@ sub negative_infinity {
 
 =head3 positive_infinity
 
-Action for rules C<number ::= 'Infinity'>
+Action for rule C<number ::= 'Infinity'>
 
 =cut
 
 sub positive_infinity {
     Math::BigInt->binf()
+}
+
+=head3 true
+
+Action for rule C<value ::= 'true'>
+
+=cut
+
+sub true {
+    1
+}
+
+=head3 false
+
+Action for rule C<value ::= 'false'>
+
+=cut
+
+sub false {
+    0
+}
+
+=head3 pairs
+
+Action for rule C<pairs ::= string ':' value'>
+
+=cut
+
+sub pairs {
+    [ $_[1], $_[3] ]
+}
+
+=head3 elements
+
+Action for rule C<elements ::= value*'>
+
+=cut
+
+sub elements {
+    @_ ? \@_ : []
 }
 
 =head1 SEE ALSO
