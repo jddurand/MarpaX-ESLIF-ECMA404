@@ -56,8 +56,10 @@ sub new {
 
     my $bnf = $_BNF;
     if ($options{unlimited_commas}) {
-        $bnf =~ s/separator => comma/separator => commas/g;
-        $bnf =~ s/proper => 1/proper => 0/g;
+        my $tag = quotemeta('# /* Unlimited commas */');
+        $bnf =~ s/$tag//g;
+        $bnf =~ s/\bseparator\s*=>\s*comma\b/separator => commas/g;
+        $bnf =~ s/\bproper\s*=>\s*1\b/proper => 0/g;
     }
     if ($options{perl_comment}) {
         my $tag = quotemeta('# /* Perl comment */');
@@ -174,105 +176,146 @@ __DATA__
 # Default action is to propagate the first RHS value
 #
 :default ::= action => ::shift
-#
-# JSON starting point is value
-#
+
+                   #######################################################
+                   # >>>>>>>>>>>>>>>> Strict JSON Grammar <<<<<<<<<<<<<<<<
+                   #######################################################
+
+# ----------------
+# Start is a value
+# ----------------
 :start ::= value
-# ----------------------------
-# JSON Grammar as per ECMA-404
-# I explicitely expose string grammar for one reason: inner string elements have specific actions
-# ----------------------------
-object   ::= '{' inc members '}' dec                                       action => ::copy[2]         # Returns members
-members  ::= pairs* separator => comma     proper => 1 hide-separator => 1 action => members           # Returns { @{pairs1}, ..., @{pair2} }
-pairs    ::= string ':' value                                              action => pairs             # Returns [ string, value ]
-array    ::= '[' inc elements ']' dec                                      action => ::copy[2]         # Returns elements
-elements ::= value* separator => comma     proper => 1 hide-separator => 1 action => elements          # Returns [ value1, ..., valuen ]
-value    ::= string                                                                                    # ::shift (default action)
-           | number                                                                                    # ::shift (default action)
-           | object                                                                                    # ::shift (default action)
-           | array                                                                                     # ::shift (default action)
-           | 'true'                                                        action => true              # Returns a perl true value
-           | 'false'                                                       action => false             # Returns a perl false value
+
+# -------------------
+# Composite separator
+# -------------------
+comma    ::= ','                                  action         => ::undef   # No-op anyway, override ::shift (default action)
+
+# ----------
+# JSON value
+# ----------
+value    ::= string                                                           # ::shift (default action)
+           | number                                                           # ::shift (default action)
+           | object                                                           # ::shift (default action)
+           | array                                                            # ::shift (default action)
+           | 'true'                               action         => true      # Returns a perl true value
+           | 'false'                              action         => false     # Returns a perl false value
            | 'null'
 
-comma    ::= ','
-commas   ::= comma+
-
-# -------------------------
-# Unsignificant whitespaces
-# -------------------------
-:discard ::= /[\x{9}\x{A}\x{D}\x{20}]*/
-
-# ------------------
-# Comment extensions
-# ------------------
-# /* Perl comment */:discard ::= /(?:(?:#)(?:[^\n]*)(?:\n|\z))/u
-# /* C++ comment */:discard ::= /(?:(?:(?:\/\/)(?:[^\n]*)(?:\n|\z))|(?:(?:\/\*)(?:(?:[^\*]+|\*(?!\/))*)(?:\*\/)))/
-
-# ---------------
-# Depth extension
-# ---------------
-inc ::=                                                        action => ::undef
-dec ::=                                                        action => ::undef
-
-# /* max_depth */event inc[] = nulled inc                                                        # Increment depth
-# /* max_depth */event dec[] = nulled dec                                                        # Decrement depth
+# -----------
+# JSON object
+# -----------
+object   ::= '{' inc members '}' dec              action         => ::copy[2] # Returns members
+members  ::= pairs*                               action         => members   # Returns { @{pairs1}, ..., @{pair2} }
+                                                  separator      => comma     # ... separated by comma
+                                                  proper         => 1         # ... with no trailing separator
+                                                  hide-separator => 1         # ... and hide separator in the action
+                                                  
+pairs    ::= string ':' value                     action         => pairs     # Returns [ string, value ]
 
 # -----------
-# JSON string
+# JSON Arrays
 # -----------
-# Executed in the top grammar and not as a lexeme. This is why we shutdown temporarily :discard in it
-#
-string     ::= '"' discardOff chars '"' discardOn              action => ::copy[2]               # Only chars is of interest
-discardOff ::=                                                 action => ::undef                 # Nullable rule used to disable discard
-discardOn  ::=                                                 action => ::undef                 # Nullable rule used to enable discard
+array    ::= '[' inc elements ']' dec             action         => ::copy[2] # Returns elements
+elements ::= value*                               action => elements          # Returns [ value1, ..., valuen ]
+                                                  separator      => comma     # ... separated by comma
+                                                  proper         => 1         # ... with no trailing separator
+                                                  hide-separator => 1         # ... and hide separator in the action
+                                                  
+
+# ------------
+# JSON Numbers
+# ------------
+number ::= NUMBER            # /* bignum */       action => number            # Prepare for eventual bignum extension
+
+NUMBER   ~ _INT
+         | _INT _FRAC
+         | _INT _EXP
+         | _INT _FRAC _EXP
+_INT     ~ _DIGIT
+         | _DIGIT19 _DIGITS
+         | '-' _DIGIT
+         | '-' _DIGIT19 _DIGITS
+_DIGIT   ~ [0-9]
+_DIGIT19 ~ [1-9]
+_FRAC    ~ '.' _DIGITS
+_EXP     ~ _E _DIGITS
+_DIGITS  ~ _DIGIT+
+_E       ~ /e[+-]?/i
+
+# -----------
+# JSON String
+# -----------
+string     ::= '"' discardOff chars '"' discardOn action => ::copy[2]               # Only chars is of interest
+discardOff ::=                                    action => ::undef                 # Nullable rule used to disable discard
+discardOn  ::=                                    action => ::undef                 # Nullable rule used to enable discard
 
 event :discard[on]  = nulled discardOn                                                           # Implementation of discard disabing using reserved ':discard[on]' keyword
 event :discard[off] = nulled discardOff                                                          # Implementation of discard enabling using reserved ':discard[off]' keyword
 
 chars   ::= filled                                                                               # ::shift (default action)
-filled  ::= char+                                              action => ::concat                # Returns join('', char1, ..., charn)
-chars   ::=                                                    action => empty_string            # Prefering empty string instead of undef
+filled  ::= char+                                 action => ::concat                # Returns join('', char1, ..., charn)
+chars   ::=                                       action => empty_string            # Prefering empty string instead of undef
 char    ::= [^"\\[:cntrl:]]                                                                      # ::shift (default action)
-          | '\\' '"'                                           action => ::copy[1]               # Returns double quote, already ok in data
-          | '\\' '\\'                                          action => ::copy[1]               # Returns backslash, already ok in data
-          | '\\' '/'                                           action => ::copy[1]               # Returns slash, already ok in data
-          | '\\' 'b'                                           action => ::u8"\x{08}"
-          | '\\' 'f'                                           action => ::u8"\x{0C}"
-          | '\\' 'n'                                           action => ::u8"\x{0A}"
-          | '\\' 'r'                                           action => ::u8"\x{0D}"
-          | '\\' 't'                                           action => ::u8"\x{09}"
-          | /(?:\\u[[:xdigit:]]{4})+/                          action => unicode
+          | '\\' '"'                              action => ::copy[1]               # Returns double quote, already ok in data
+          | '\\' '\\'                             action => ::copy[1]               # Returns backslash, already ok in data
+          | '\\' '/'                              action => ::copy[1]               # Returns slash, already ok in data
+          | '\\' 'b'                              action => ::u8"\x{08}"
+          | '\\' 'f'                              action => ::u8"\x{0C}"
+          | '\\' 'n'                              action => ::u8"\x{0A}"
+          | '\\' 'r'                              action => ::u8"\x{0D}"
+          | '\\' 't'                              action => ::u8"\x{09}"
+          | /(?:\\u[[:xdigit:]]{4})+/             action => unicode
 
-# -------------------------------------------------------------------------------------------------------------
-# JSON number: defined as a single terminal: ECMA404 numbers can be are 100% compliant with perl numbers syntax
-# -------------------------------------------------------------------------------------------------------------
+
+# -------------------------
+# Unsignificant whitespaces
+# -------------------------
+:discard ::= /[\x{9}\x{A}\x{D}\x{20}]+/
+
+# ------------------------------------------------------
+# Needed for eventual depth extension - no op by default
+# ------------------------------------------------------
+inc ::=                                                        action => ::undef
+dec ::=                                                        action => ::undef
+
+                   #######################################################
+                   # >>>>>>>>>>>>>>>>>> JSON Extensions <<<<<<<<<<<<<<<<<<
+                   #######################################################
+
+# --------------------------
+# Unlimited commas extension
+# --------------------------
+# /* Unlimited commas */commas   ::= comma+
+
+# --------------------------
+# Perl comment extension
+# --------------------------
+# /* Perl comment */:discard ::= /(?:(?:#)(?:[^\n]*)(?:\n|\z))/u
+
+# --------------------------
+# C++ comment extension
+# --------------------------
+# /* C++ comment */:discard ::= /(?:(?:(?:\/\/)(?:[^\n]*)(?:\n|\z))|(?:(?:\/\*)(?:(?:[^\*]+|\*(?!\/))*)(?:\*\/)))/
+
+# --------------------------
+# Max depth extension
+# --------------------------
+# /* max_depth */event inc[] = nulled inc                                                        # Increment depth
+# /* max_depth */event dec[] = nulled dec                                                        # Decrement depth
+
+# ----------------
+# Number extension
+# ----------------
 #
 # number ::= /\-?(?:(?:[1-9]?[0-9]+)|[0-9])(?:\.[0-9]+)?(?:[eE](?:[+-])?[0-9]+)?/ # /* bignum */action => number
-number ::= NUMBER # /* bignum */action => number
 
-# /* bignum */number   ::= '-' nan                               action => nan
-# /* bignum */number   ::=     nan                               action => nan
-# /* bignum */number   ::= '+' nan                               action => nan
-# /* bignum */number   ::= '-' infinity                          action => negative_infinity
-# /* bignum */number   ::=     infinity                          action => positive_infinity
-# /* bignum */number   ::= '+' infinity                          action => positive_infinity
-# /* bignum */nan      ::= 'NaN'
-# /* bignum */infinity ::= 'Infinity' | 'Inf'
-
-# Original BNF for number follows
-#
-NUMBER    ~ int
-          | int frac
-          | int exp
-          | int frac exp
-int       ~ digit
-          | digit19 digits
-          | '-' digit
-          | '-' digit19 digits
-digit     ~ [[:digit:]]
-digit19   ~ [1-9]
-frac      ~ '.' digits
-exp       ~ e digits
-digits    ~ digit+
-e         ~ /e[+-]?/i
+# /* bignum */number   ::= '-NaN':i                              action => nan
+# /* bignum */number   ::=  'NaN':i                              action => nan
+# /* bignum */number   ::= '+NaN':i                              action => nan
+# /* bignum */number   ::= '-Infinity':i                         action => negative_infinity
+# /* bignum */number   ::=  'Infinity':i                         action => positive_infinity
+# /* bignum */number   ::= '+Infinity':i                         action => positive_infinity
+# /* bignum */number   ::= '-Inf':i                              action => negative_infinity
+# /* bignum */number   ::=  'Inf':i                              action => positive_infinity
+# /* bignum */number   ::= '+Inf':i                              action => positive_infinity
