@@ -4,6 +4,7 @@ use warnings FATAL => 'all';
 package MarpaX::ESLIF::ECMA404::ValueInterface;
 use Math::BigInt;
 use Math::BigFloat;
+use Carp qw/croak/;
 
 our $FFFD = chr(0xFFFD);
 
@@ -38,9 +39,9 @@ Instantiate a new value interface object.
 =cut
 
 sub new {
-    my ($pkg, $logger) = @_;
+    my ($pkg, %options) = @_;
 
-    bless { result => undef, logger => $logger }, $pkg
+    bless { result => undef, %options }, $pkg
 }
 
 # ----------------
@@ -180,9 +181,22 @@ sub members {
     #
     my %hash;
     foreach (@pairs) {
-        my ($key, $value) = @{$_};
-        $self->{logger}->warnf('Duplicate key %s', $key) if exists $hash{$key};
-        $hash{$key} = $value
+      my ($key, $value) = @{$_};
+      if (exists $hash{$key}) {
+        if ($self->{disallow_dupkeys}) {
+          #
+          # Just make sure the key printed out contains only printable things
+          #
+          my $ascii = $key;
+          $ascii =~ s/[^[:print:]]/ /g;
+          $ascii .= " (printable characters only)" unless $ascii eq $key;
+          $self->{logger}->errorf('Duplicate key %s', $ascii) if $self->{logger};
+          croak "Duplicate key $ascii"
+        } else {
+          $self->{logger}->warnf('Duplicate key %s', $key) if $self->{logger}
+        }
+      }
+      $hash{$key} = $value
     }
     \%hash
 }
