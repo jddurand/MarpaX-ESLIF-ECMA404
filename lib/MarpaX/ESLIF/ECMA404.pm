@@ -75,11 +75,11 @@ Use perl's bignum to store numbers. Default perl's bignum accuracy and precision
 
 =item inf
 
-Support of C<infinity> or C<inf>, case insensitive, eventually preceeded by a C<+> or a C<-> sign.
+Support of C<infinity> or C<inf>, case insensitive, eventually preceded by a C<+> or a C<-> sign.
 
 =item nan
 
-Support of C<nan>, case insensitive, eventually preceeded by a C<+> or a C<-> sign (even if this is meaningless).
+Support of C<nan>, case insensitive, eventually preceded by a C<+> or a C<-> sign (even if this is meaningless).
 
 =item cntrl
 
