@@ -201,7 +201,7 @@ sub members {
     \%hash
 }
 
-=head3 bignum
+=head3 number
 
 Action for rule C<number ::= /\-?(?:(?:[1-9]?[0-9]*)|[0-9])(?:\.[0-9]*)?(?:[eE](?:[+-])?[0-9]+)?/>
 
