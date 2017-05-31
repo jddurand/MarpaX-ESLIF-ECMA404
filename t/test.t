@@ -6,32 +6,27 @@ use FindBin qw /$Bin/;
 use File::Spec;
 use Test::More;
 use Test::More::UTF8;
-use Log::Log4perl qw/:easy/;
 use Log::Any qw/$log/;
-use Log::Any::Adapter;
-use Log::Any::Adapter::Log4perl;  # Just to make sure dzil catches it
+#use Log::Log4perl qw/:easy/;
+#use Log::Any::Adapter;
+#use Log::Any::Adapter::Log4perl;  # Just to make sure dzil catches it
 
 #
 # Init log
 #
-our $defaultLog4perlConf = '
-log4perl.rootLogger              = TRACE, Screen
-log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
-log4perl.appender.Screen.stderr  = 0
-log4perl.appender.Screen.layout  = PatternLayout
-log4perl.appender.Screen.layout.ConversionPattern = %d %-5p %6P %m{chomp}%n
-';
-Log::Log4perl::init(\$defaultLog4perlConf);
-Log::Any::Adapter->set('Log4perl');
+#our $defaultLog4perlConf = '
+#log4perl.rootLogger              = TRACE, Screen
+#log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
+#log4perl.appender.Screen.stderr  = 0
+#log4perl.appender.Screen.layout  = PatternLayout
+#log4perl.appender.Screen.layout.ConversionPattern = %d %-5p %6P %m{chomp}%n
+#';
+#Log::Log4perl::init(\$defaultLog4perlConf);
+#Log::Any::Adapter->set('Log4perl');
 
 BEGIN { require_ok('MarpaX::ESLIF::ECMA404') };
 
-my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger             => $log,
-                                          perl_comment       => 1,
-                                          cplusplus_comment  => 1,
-                                          max_depth          => 500,
-                                          del_character      => 1,
-                                          bignum             => 1);
+my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger => $log);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
 foreach (sort __PACKAGE__->section_data_names) {
@@ -45,16 +40,15 @@ foreach (sort __PACKAGE__->section_data_names) {
     # Test data
     #
     my $input = __PACKAGE__->section_data($_);
-    $@ = 'good!';
     if ($want_ok) {
         # Left commented to compare with a good and working parser -;
         # use JSON::XS ();
         # is_deeply($ecma404->decode($$input), JSON::XS::decode_json($$input), $_);
-        ok($ecma404->decode($$input), "$_ - $@");
+        ok(defined($ecma404->decode($$input)), $_);
         #use Data::Dumper;
         #print STDERR Dumper($ecma404->decode($$input));
     } else {
-        ok(!$ecma404->decode($$input), "$_ - $@");
+        ok(!defined($ecma404->decode($$input)), $_);
     }
 }
 
@@ -86,17 +80,10 @@ foreach my $basename (@files) {
     }
 
     my $want_ok = ($basename =~ /^n/);
-    $@ = 'good!';
     if ($want_ok) {
-        if (! ok(!$ecma404->decode($data, $encoding), "$basename - $@")) {
-            use Data::Dumper;
-            print STDERR Dumper($data);
-        }
+      ok(!defined($ecma404->decode($data, $encoding)), $basename);
     } else {
-        if (! ok($ecma404->decode($data, $encoding), "$basename - $@")) {
-            use Data::Dumper;
-            print STDERR Dumper($data);
-        }
+      ok(defined($ecma404->decode($data, $encoding)), $basename);
     }
 }
 
