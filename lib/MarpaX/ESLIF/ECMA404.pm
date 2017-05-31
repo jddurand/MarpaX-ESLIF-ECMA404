@@ -100,12 +100,12 @@ Parses JSON that is in C<$input> and returns a perl variable containing the corr
 =cut
 
 sub decode {
-  my ($self, $input) = @_;
+  my ($self, $input, $encoding) = @_;
 
   # ----------------------------------
   # Instanciate a recognizer interface
   # ----------------------------------
-  my $recognizerInterface = MarpaX::ESLIF::ECMA404::RecognizerInterface->new($input);
+  my $recognizerInterface = MarpaX::ESLIF::ECMA404::RecognizerInterface->new($input, $encoding);
 
   # -----------------------------
   # Instanciate a value interface

@@ -28,13 +28,16 @@ MarpaX::ESLIF::ECMA404's Recognizer Interface
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new($class, $string)
+=head2 new($class, $string, $encoding)
 
-Instantiate a new recognizer interface object. Argument is the data.
+Instantiate a new recognizer interface object. Argument is the data, following eventually by encoding.
 
 =cut
 
-sub new { bless \$_[1], $_[0] }
+sub new {
+    my ($pkg, $input, $encoding) = @_;
+    bless { data => $input, encoding => $encoding }, $pkg
+}
 
 # ----------------
 # Required methods
@@ -72,7 +75,7 @@ Returns encoding information. Default is undef.
 
 =cut
 
-sub encoding               {          } # Let MarpaX::ESLIF guess
+sub encoding               { $_[0]->{encoding} } # Let MarpaX::ESLIF guess eventually
 
 =head3 data($self)
 
@@ -80,7 +83,7 @@ Returns last bunch of data. Default is the string passed in the constructor.
 
 =cut
 
-sub data                   { ${$_[0]} } # Data itself
+sub data                   { $_[0]->{data} } # Data itself
 
 =head3 isWithDisableThreshold($self)
 

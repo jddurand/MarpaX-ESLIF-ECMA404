@@ -73,15 +73,27 @@ foreach my $basename (@files) {
     my $data = do { local $/; <$f> };
     close($f) || warn "Failed to close $_, $!";
 
+    #
+    # Encoding - letting MarpaX::ESLIF guess is proned to errors
+    #
+    my $encoding;
+    if ($basename =~ /utf16be/i) {
+        $encoding = 'UTF-16BE';
+    } elsif ($basename =~ /utf16le/i) {
+        $encoding = 'UTF-16LE';
+    } elsif ($basename =~ /utf\-?8/i) {
+        $encoding = 'UTF-8';
+    }
+
     my $want_ok = ($basename =~ /^n/);
     $@ = 'good!';
     if ($want_ok) {
-        if (! ok(!$ecma404->decode($data), "$basename - $@")) {
+        if (! ok(!$ecma404->decode($data, $encoding), "$basename - $@")) {
             use Data::Dumper;
             print STDERR Dumper($data);
         }
     } else {
-        if (! ok($ecma404->decode($data), "$basename - $@")) {
+        if (! ok($ecma404->decode($data, $encoding), "$basename - $@")) {
             use Data::Dumper;
             print STDERR Dumper($data);
         }
