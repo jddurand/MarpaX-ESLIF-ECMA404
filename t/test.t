@@ -30,6 +30,8 @@ my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger             => $log,
                                           perl_comment       => 1,
                                           cplusplus_comment  => 1,
                                           max_depth          => 500,
+                                          inf                => 1,
+                                          nan                => 1,
                                           cntrl              => 1,
                                           bignum             => 1);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
