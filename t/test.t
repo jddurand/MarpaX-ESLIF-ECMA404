@@ -6,7 +6,7 @@ use FindBin qw /$Bin/;
 use File::Spec;
 use Test::More;
 use Test::More::UTF8;
-use Log::Any qw/$log/;
+# use Log::Any qw/$log/;
 #use Log::Log4perl qw/:easy/;
 #use Log::Any::Adapter;
 #use Log::Any::Adapter::Log4perl;  # Just to make sure dzil catches it
@@ -26,7 +26,9 @@ use Log::Any qw/$log/;
 
 BEGIN { require_ok('MarpaX::ESLIF::ECMA404') };
 
-my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger => $log);
+my $ecma404 = MarpaX::ESLIF::ECMA404->new(
+                                          # logger => $log
+                                         );
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
 foreach (sort __PACKAGE__->section_data_names) {
