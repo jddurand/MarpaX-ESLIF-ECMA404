@@ -59,6 +59,8 @@ sub new {
         my $tag = quotemeta('# /* Unlimited commas */');
         $bnf =~ s/$tag//g;
         $bnf =~ s/\bseparator\s*=>\s*comma\b/separator => commas/g;
+    }
+    if ($options{trailing_separator}) {
         $bnf =~ s/\bproper\s*=>\s*1\b/proper => 0/g;
     }
     if ($options{perl_comment}) {
@@ -71,6 +73,18 @@ sub new {
     }
     if ($options{bignum}) {
         my $tag = quotemeta('# /* bignum */');
+        $bnf =~ s/$tag//g;
+    }
+    if ($options{inf}) {
+        my $tag = quotemeta('# /* inf */');
+        $bnf =~ s/$tag//g;
+    }
+    if ($options{nan}) {
+        my $tag = quotemeta('# /* nan */');
+        $bnf =~ s/$tag//g;
+    }
+    if ($options{cntrl}) {
+        my $tag = quotemeta('# /* cntrl */');
         $bnf =~ s/$tag//g;
     }
     #
@@ -310,12 +324,18 @@ dec ::=                                                        action => ::undef
 #
 # number ::= /\-?(?:(?:[1-9]?[0-9]+)|[0-9])(?:\.[0-9]+)?(?:[eE](?:[+-])?[0-9]+)?/ # /* bignum */action => number
 
-# /* bignum */number   ::= '-NaN':i                              action => nan
-# /* bignum */number   ::=  'NaN':i                              action => nan
-# /* bignum */number   ::= '+NaN':i                              action => nan
-# /* bignum */number   ::= '-Infinity':i                         action => negative_infinity
-# /* bignum */number   ::=  'Infinity':i                         action => positive_infinity
-# /* bignum */number   ::= '+Infinity':i                         action => positive_infinity
-# /* bignum */number   ::= '-Inf':i                              action => negative_infinity
-# /* bignum */number   ::=  'Inf':i                              action => positive_infinity
-# /* bignum */number   ::= '+Inf':i                              action => positive_infinity
+# /* nan */number   ::= '-NaN':i                               action => nan
+# /* nan */number   ::=  'NaN':i                               action => nan
+# /* nan */number   ::= '+NaN':i                               action => nan
+# /* inf */number   ::= '-Infinity':i                          action => negative_infinity
+# /* inf */number   ::=  'Infinity':i                          action => positive_infinity
+# /* inf */number   ::= '+Infinity':i                          action => positive_infinity
+# /* inf */number   ::= '-Inf':i                               action => negative_infinity
+# /* inf            ::=  'Inf':i                               action => positive_infinity
+# /* inf */number   ::= '+Inf':i                               action => positive_infinity
+
+# -----------------
+# Control character
+# -----------------
+# /* cntrl */char      ::= [[:cntrl:]]                                                            # ::shift (default action)
+

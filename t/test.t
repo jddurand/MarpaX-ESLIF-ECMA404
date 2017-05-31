@@ -26,12 +26,12 @@ Log::Any::Adapter->set('Log4perl');
 
 BEGIN { require_ok('MarpaX::ESLIF::ECMA404') };
 
-my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger            => $log,
-                                          unlimited_commas  => 1,
-                                          perl_comment      => 1,
-                                          cplusplus_comment => 1,
-                                          max_depth         => 500,
-                                          bignum            => 1);
+my $ecma404 = MarpaX::ESLIF::ECMA404->new(logger             => $log,
+                                          perl_comment       => 1,
+                                          cplusplus_comment  => 1,
+                                          max_depth          => 500,
+                                          cntrl              => 1,
+                                          bignum             => 1);
 isa_ok($ecma404, 'MarpaX::ESLIF::ECMA404');
 
 foreach (sort __PACKAGE__->section_data_names) {
