@@ -49,12 +49,51 @@ An optional logger object instance that must do methods compliant with L<Log::An
 
 =back
 
+and the following extensions:
+
+=over
+
+=item unlimited_commas
+
+Allow unlimited number of commas between object pairs or array elements.
+
+=item trailing_separator
+
+Allow trailing separator (i.e. a comma, eventually an unlimited number of them (c.f. C<unlimited_commas> option) after object pairs or array elements.
+
+=item perl_comment
+
+Allow perl style comments.
+
+=item cplusplus_comment
+
+Allow C++ style comments.
+
+=item bignum
+
+Use perl's bignum to store numbers. Default perl's bignum accuracy and precision will be in effect.
+
+=item inf
+
+Support of C<infinity> or C<inf>, case insensitive, eventually preceeded by a C<+> or a C<-> sign.
+
+=item nan
+
+Support of C<nan>, case insensitive, eventually preceeded by a C<+> or a C<-> sign (even if this is meaningless).
+
+=item cntrl
+
+Support of Unicode's control characters (i.e. the range C<[\x00-\x1F]>).
+
+=back
+
 =cut
 
 sub new {
     my ($pkg, %options) = @_;
 
     my $bnf = $_BNF;
+
     if ($options{unlimited_commas}) {
         my $tag = quotemeta('# /* Unlimited commas */');
         $bnf =~ s/$tag//g;
@@ -87,10 +126,6 @@ sub new {
         my $tag = quotemeta('# /* cntrl */');
         $bnf =~ s/$tag//g;
     }
-    if ($options{del_character}) {
-        my $tag = quotemeta('# /* del */');
-        $bnf =~ s/$tag//g;
-    }
     #
     # Check that max_depth looks like a number
     #
@@ -113,9 +148,9 @@ sub new {
           }, $pkg
 }
 
-=head2 decode($self, $input)
+=head2 decode($self, $input, $encoding)
 
-Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation, or C<undef> in case of failure.
+Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation, or C<undef> in case of failure. C<$encoding> is an optional parameter: JSON parser is using L<MarpaX::ESLIF> that will I<guess> about the encoding if not specified, this guess is not 100% reliable - so if you know the encoding of your data, in particular if it is not in UTF-8, you should give the information to the parser. Default is to guess.
 
 =cut
 
@@ -125,12 +160,12 @@ sub decode {
   # ----------------------------------
   # Instanciate a recognizer interface
   # ----------------------------------
-  my $recognizerInterface = MarpaX::ESLIF::ECMA404::RecognizerInterface->new($input, $encoding);
+  my $recognizerInterface = MarpaX::ESLIF::ECMA404::RecognizerInterface->new(data => $input, encoding => $encoding);
 
   # -----------------------------
   # Instanciate a value interface
   # -----------------------------
-  my $valueInterface = MarpaX::ESLIF::ECMA404::ValueInterface->new($self->{logger});
+  my $valueInterface = MarpaX::ESLIF::ECMA404::ValueInterface->new(logger => $self->{logger}, disallow_dupkeys => $self->{disallow_dupkeys});
 
   # ---------------
   # Parse the input
@@ -158,7 +193,7 @@ sub decode {
       MarpaX::ESLIF::Value->new($eslifRecognizer, $valueInterface)->value()
     }
   } else {
-    return unless $self->{grammar}->parse($recognizerInterface, $valueInterface)
+    return unless eval { $self->{grammar}->parse($recognizerInterface, $valueInterface) }
   }
 
   # ------------------------
@@ -274,7 +309,7 @@ event :discard[off] = nulled discardOff                                         
 chars   ::= filled                                                                               # ::shift (default action)
 filled  ::= char+                                 action => ::concat                # Returns join('', char1, ..., charn)
 chars   ::=                                       action => empty_string            # Prefering empty string instead of undef
-char    ::= [^"\\[:cntrl:]]                                                                      # ::shift (default action)
+char    ::= [^"\\\x00-\x1F]                                                         # ::shift (default action) - take care PCRE2 [:cntrl:] includes DEL character
           | '\\' '"'                              action => ::copy[1]               # Returns double quote, already ok in data
           | '\\' '\\'                             action => ::copy[1]               # Returns backslash, already ok in data
           | '\\' '/'                              action => ::copy[1]               # Returns slash, already ok in data
@@ -342,9 +377,3 @@ dec ::=                                                        action => ::undef
 # Control character
 # -----------------
 # /* cntrl */char      ::= /[\x00-\x1F]/                                                          # Because [:cntrl:] includes DEL (x7F)
-
-# -----------------
-# Del character
-# -----------------
-# /* del */char      ::= /\x7F/                                                                   # ::shift (default action)
-
