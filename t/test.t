@@ -81,8 +81,8 @@ foreach my $basename (@files) {
         $encoding = 'UTF-8';
     }
 
-    my $want_ok = ($basename =~ /^n/);
-    if ($want_ok) {
+    my $want_ko = ($basename =~ /^n/);
+    if ($want_ko) {
       ok(!defined($ecma404->decode($data, $encoding)), $basename);
     } else {
       ok(defined($ecma404->decode($data, $encoding)), $basename);
