@@ -146,8 +146,10 @@ sub unicode {
       if (($high >= 0xD800) && ($high <= 0xDBFF) && ($low >= 0xDC00) && ($low <= 0xDFFF)) {
         #
         # Yes.
+        # This is evaled for one reason only: some old versions of perl may croak with special characters like
+        # "Unicode character 0x10ffff is illegal"
         #
-        $result .= chr((($high - 0xD800) * 0x400) + ($low - 0xDC00) + 0x10000);
+        $result .= eval {chr((($high - 0xD800) * 0x400) + ($low - 0xDC00) + 0x10000)} // $FFFD;
         splice(@hex, 0, 2)
       } else {
         #
