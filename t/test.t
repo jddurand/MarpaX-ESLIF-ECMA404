@@ -79,6 +79,12 @@ foreach my $basename (@files) {
         $encoding = 'UTF-16LE';
     } elsif ($basename =~ /utf\-?8/i) {
         $encoding = 'UTF-8';
+    } elsif (! ($basename =~ /bom/i)) {
+        #
+        # Just to please OLD versions of perl, 5.10 for example.
+        # In general this is not needed.
+        #
+        $encoding = 'UTF-8';
     }
 
     my $want_ko = ($basename =~ /^n/);
