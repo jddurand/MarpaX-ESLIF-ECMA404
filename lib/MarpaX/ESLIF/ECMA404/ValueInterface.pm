@@ -284,7 +284,8 @@ Action for rule C<elements ::= value*'>
 =cut
 
 sub elements {
-    @_ ? \@_ : []
+    my ($self, @elements) = @_;
+    \@elements
 }
 
 =head1 SEE ALSO
