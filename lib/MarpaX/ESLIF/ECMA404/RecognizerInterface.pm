@@ -28,9 +28,21 @@ MarpaX::ESLIF::ECMA404's Recognizer Interface
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new($class, $string, $encoding)
+=head2 new($class, %options)
 
-Instantiate a new recognizer interface object. Argument is the data, following eventually by encoding.
+Instantiate a new recognizer interface object. C<%options> may contain:
+
+=over
+
+=item data
+
+The data to parse
+
+=item encoding
+
+The encoding of the data
+
+=back
 
 =cut
 
