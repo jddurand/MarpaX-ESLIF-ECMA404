@@ -28,7 +28,7 @@ This module decodes strict JSON input using L<MarpaX::ESLIF>.
 =cut
 
 use Carp qw/croak/;
-use MarpaX::ESLIF 2.0.32;   # Fixes tconv character validation
+use MarpaX::ESLIF 2.0.33;   # Do not trust iconv
 use MarpaX::ESLIF::ECMA404::RecognizerInterface;
 use MarpaX::ESLIF::ECMA404::ValueInterface;
 use Scalar::Util qw/looks_like_number/;
