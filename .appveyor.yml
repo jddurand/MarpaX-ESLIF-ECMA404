@@ -19,12 +19,12 @@ install:
       ppm install dmake Test::Pod
       lwp-download https://raw.githubusercontent.com/miyagawa/cpanminus/master/cpanm C:/projects/cpanm
       perl -V
-      perl C:/projects/cpanm -q --with-develop --with-suggests --installdeps .
+      perl C:/projects/cpanm -q --with-develop --with-suggests --installdeps --verbose .
     } else {
       cinst StrawberryPerl
       $env:Path = "C:\strawberry\perl\bin;C:\strawberry\perl\site\bin;C:\strawberry\c\bin;" + $env:Path
       perl -V
-      cpanm -q --with-develop --with-suggests --installdeps .
+      cpanm -q --with-develop --with-suggests --installdeps --verbose .
     }
   
 build_script:
