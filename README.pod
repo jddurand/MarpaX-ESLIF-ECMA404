@@ -8,7 +8,7 @@ MarpaX::ESLIF::ECMA404 - JSON Data Interchange Format following ECMA-404 specifi
 
 =head1 VERSION
 
-version 0.010
+version 0.011
 
 =head1 SYNOPSIS
 
@@ -82,7 +82,7 @@ Dot not allow duplicate key in an object.
 
 =head2 decode($self, $input, $encoding)
 
-Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation, or C<undef> in case of failure. C<$encoding> is an optional parameter: JSON parser is using L<MarpaX::ESLIF> that will I<guess> about the encoding if not specified, this guess is not 100% reliable - so if you know the encoding of your data, in particular if it is not in UTF-8, you should give the information to the parser. Default is to guess.
+Parses JSON that is in C<$input> and returns a perl variable containing the corresponding structured representation (which can be C<undef>), or croaks in case of failure. C<$encoding> is an optional parameter: JSON parser is using L<MarpaX::ESLIF> that will I<guess> about the encoding if not specified, this guess is not 100% reliable - so if you know the encoding of your data, in particular if it is not in UTF-8, you should give the information to the parser. Default is to guess.
 
 =head1 SEE ALSO
 
