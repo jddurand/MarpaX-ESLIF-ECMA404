@@ -7,11 +7,9 @@ use warnings FATAL => 'all';
 
 package MarpaX::ESLIF::ECMA404;
 use Log::Any qw/$log/;
-use MarpaX::ESLIF 3.0.30;
+use MarpaX::ESLIF 3.0.32;
 
-my $ESLIF       = MarpaX::ESLIF->new($log);
-my $JSONStrict  = MarpaX::ESLIF::JSON->new($ESLIF, 1);
-my $JSONRelaxed = MarpaX::ESLIF::JSON->new($ESLIF, 0);
+my $ESLIF = MarpaX::ESLIF->new($log);
 
 # ABSTRACT: JSON Data Interchange Format following ECMA-404 specification
 
@@ -44,7 +42,7 @@ This module is nothing else but a proxy to L<MarpaX::ESLIF::JSON>, please refer 
 sub decode {
     my ($self, $input, %options) = @_;
 
-    return $options{strict} ? $JSONStrict->decode($input, %options) : $JSONRelaxed->decode($input, %options)
+    return $options{strict} ? _JSONStrict()->decode($input, %options) : _JSONRelaxed()->decode($input, %options)
 }
 
 =head2 encode($self, $input)
@@ -54,7 +52,22 @@ sub decode {
 sub encode {
     my ($self, $input, %options) = @_;
 
-    return $options{strict} ? $JSONStrict->encode($input, %options) : $JSONRelaxed->encode($input, %options)
+    return $options{strict} ? _JSONStrict()->encode($input, %options) : _JSONRelaxed()->encode($input, %options)
+}
+
+# -------------
+# Private stubs
+# -------------
+sub _JSONStrict {
+    CORE::state $JSONStrict = MarpaX::ESLIF::JSON->new($ESLIF, 1);
+
+    return $JSONStrict
+}
+
+sub _JSONRelaxed {
+    CORE::state $JSONRelaxed = MarpaX::ESLIF::JSON->new($ESLIF, 0);
+
+    return $JSONRelaxed
 }
 
 =head1 SEE ALSO
