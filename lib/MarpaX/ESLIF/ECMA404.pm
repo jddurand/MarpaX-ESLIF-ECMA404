@@ -4,6 +4,7 @@
 
 use strict;
 use warnings FATAL => 'all';
+use feature 'state';
 
 package MarpaX::ESLIF::ECMA404;
 use Log::Any qw/$log/;
@@ -59,13 +60,13 @@ sub encode {
 # Private stubs
 # -------------
 sub _JSONStrict {
-    CORE::state $JSONStrict = MarpaX::ESLIF::JSON->new($ESLIF, 1);
+    state $JSONStrict = MarpaX::ESLIF::JSON->new($ESLIF, 1);
 
     return $JSONStrict
 }
 
 sub _JSONRelaxed {
-    CORE::state $JSONRelaxed = MarpaX::ESLIF::JSON->new($ESLIF, 0);
+    state $JSONRelaxed = MarpaX::ESLIF::JSON->new($ESLIF, 0);
 
     return $JSONRelaxed
 }
